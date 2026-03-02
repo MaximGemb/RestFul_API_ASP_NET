@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="7dc85504-b0ae-471e-b658-cac034a82596" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/YandexLessons/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/YandexLessons/RestFulApi/Controllers/WeatherForecastController.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/YandexLessons/RestFulApi/Program.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/YandexLessons/RestFulApi/Properties/launchSettings.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/YandexLessons/RestFulApi/RestFulApi.csproj" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/YandexLessons/RestFulApi/RestFulApi.http" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/YandexLessons/RestFulApi/WeatherForecast.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/YandexLessons/RestFulApi/appsettings.Development.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/YandexLessons/RestFulApi/appsettings.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/YandexLessons/YandexLessons.slnx" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="3AOgUF3qao2Zvw0GyPJMnw6ndxR" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "git-widget-placeholder": "main",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="7dc85504-b0ae-471e-b658-cac034a82596" name="Changes" comment="" />
+      <created>1772469045476</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1772469045476</updated>
+      <workItem from="1772469048588" duration="191000" />
+      <workItem from="1772469293410" duration="48000" />
+      <workItem from="1772469611521" duration="358000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
+  <component name="VcsManagerConfiguration">
+    <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.OperationCanceledException" breakIfHandledByOtherCode="false" displayValue="System.OperationCanceledException" />
+          <option name="timeStamp" value="1" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.Tasks.TaskCanceledException" breakIfHandledByOtherCode="false" displayValue="System.Threading.Tasks.TaskCanceledException" />
+          <option name="timeStamp" value="2" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
+          <option name="timeStamp" value="3" />
+        </breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
