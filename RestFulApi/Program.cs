@@ -1,10 +1,16 @@
 using System.Reflection;
+using RestFulApi.Interfaces;
+using RestFulApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+// Регистрация сервиса событий как Singleton (в памяти для всех запросов)
+builder.Services.AddSingleton<IEventService, EventService>();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(options =>
