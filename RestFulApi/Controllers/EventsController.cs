@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using RestFulApi.DTOs;
 using RestFulApi.Interfaces;
@@ -14,16 +15,25 @@ namespace RestFulApi.Controllers;
 public class EventsController(IEventService eventService) : ControllerBase
 {
     /// <summary>
-    /// Получить список всех событий.
+    /// Получить список событий с фильтрацией и пагинацией.
     /// </summary>
-    /// <returns>Список событий.</returns>
+    /// <param name="title">Фильтр по части названия события.</param>
+    /// <param name="from">Минимальная дата начала события.</param>
+    /// <param name="to">Максимальная дата окончания события.</param>
+    /// <param name="page">Номер страницы, начиная с 1.</param>
+    /// <param name="pageSize">Количество элементов на странице.</param>
+    /// <returns>Пагинированный список событий.</returns>
     /// <response code="200">Успешное выполнение.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<Event>>> GetEvents([FromQuery] string? title = null, [FromQuery] DateTime? from = null,
-        [FromQuery] DateTime? to = null)
+    public async Task<ActionResult<PaginatedResult<Event>>> GetEvents(
+        [FromQuery] string? title = null,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] [Range(1, int.MaxValue)] int pageSize = 10)
     {
-        var events = await eventService.GetAll(title, from, to);
+        var events = await eventService.GetAll(title, from, to, page, pageSize);
         return Ok(events);
     }
 

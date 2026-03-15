@@ -8,32 +8,32 @@ namespace RestFulApi.Exceptions;
 public class NotFoundException : Exception
 {
     /// <summary>
-    /// Id события
+    /// Идентификатор события, связанного с ошибкой.
     /// </summary>
     public Guid? Id { get; }
 
     /// <summary>
-    /// Базовый конструктор
+    /// Инициализирует новый экземпляр исключения с сообщением по умолчанию.
     /// </summary>
     public NotFoundException() : base(message: "Unknown event error.")
     {
     }
 
     /// <summary>
-    /// Конструктор, принимающий текстовое сообщение
+    /// Инициализирует новый экземпляр исключения с идентификатором сущности и сообщением об ошибке.
     /// </summary>
-    /// <param name="id">Событие в котором произошла ошибка</param>
-    /// <param name="message">Принимаемое сообщение</param>
+    /// <param name="id">Идентификатор события, при обработке которого произошла ошибка.</param>
+    /// <param name="message">Текст сообщения об ошибке.</param>
     public NotFoundException(Guid? id, string message) : base(message) => 
         Id = id;
 
 
     /// <summary>
-    /// Конструктор, принимающий текстовое сообщение и внутреннее исключение
+    /// Инициализирует новый экземпляр исключения с идентификатором сущности, сообщением и внутренним исключением.
     /// </summary>
-    /// <param name="id">Событие в котором произошла ошибка</param>
-    /// <param name="message">Принимаемое сообщение</param>
-    /// <param name="inner">Внутренне исключение</param>
+    /// <param name="id">Идентификатор события, при обработке которого произошла ошибка.</param>
+    /// <param name="message">Текст сообщения об ошибке.</param>
+    /// <param name="inner">Внутреннее исключение.</param>
     public NotFoundException(Guid? id, string message, Exception inner)
         : base(message, inner) =>
         Id = id;

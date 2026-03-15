@@ -12,9 +12,9 @@ namespace RestFulApi.Middleware;
 public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlingMiddleware> logger)
 {
     /// <summary>
-    /// 
+    /// Обрабатывает HTTP-запрос и перехватывает необработанные исключения.
     /// </summary>
-    /// <param name="context"></param>
+    /// <param name="context">Текущий HTTP-контекст запроса.</param>
     public async Task InvokeAsync(HttpContext context)
     {
         try
