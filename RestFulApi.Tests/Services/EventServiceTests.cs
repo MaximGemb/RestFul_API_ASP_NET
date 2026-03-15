@@ -322,53 +322,7 @@ public class EventServiceTests
         validationResults.Should()
             .Contain(result => result.ErrorMessage == "Дата завершения должна быть позже даты начала.");
     }
-
-    [Fact]
-    public void EventDto_ShouldFailValidation_WhenRequiredTitleIsMissing()
-    {
-        // Arrange
-        var dto = new EventDto(null!, "Description", new DateTime(2026, 11, 01), new DateTime(2026, 11, 02));
-        var validationResults = new List<ValidationResult>();
-
-        // Act
-        var isValid = Validator.TryValidateObject(dto, new ValidationContext(dto), validationResults, true);
-
-        // Assert
-        isValid.Should().BeFalse();
-        validationResults.Should().Contain(result => result.MemberNames.Contains("Title"));
-    }
-
-    [Fact]
-    public void EventDto_ShouldFailValidation_WhenRequiredStartAtIsMissing()
-    {
-        // Arrange
-        var dto = new EventDto("Title", "Description", null, new DateTime(2026, 11, 02));
-        var validationResults = new List<ValidationResult>();
-
-        // Act
-        var isValid = Validator.TryValidateObject(dto, new ValidationContext(dto), validationResults, true);
-
-        // Assert
-        isValid.Should().BeFalse();
-        validationResults.Should().Contain(result => result.MemberNames.Contains("StartAt"));
-    }
-
-    [Fact]
-    public void EventDto_ShouldFailValidation_WhenRequiredEndAtIsMissing()
-    {
-        // Arrange
-        var dto = new EventDto("Title", "Description", new DateTime(2026, 11, 01), null);
-        var validationResults = new List<ValidationResult>();
-
-        // Act
-        var isValid = Validator.TryValidateObject(dto, new ValidationContext(dto), validationResults, true);
-
-        // Assert
-        isValid.Should().BeFalse();
-        validationResults.Should().Contain(result => result.MemberNames.Contains("EndAt"));
-    }
-
-
+    
     [Fact]
     public void EventDto_ShouldFailValidation_WhenStartAtEqualsEndAt()
     {

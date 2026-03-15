@@ -10,13 +10,10 @@ namespace RestFulApi.DTOs;
 /// <param name="StartAt">Дата и время начала события.</param>
 /// <param name="EndAt">Дата и время завершения события.</param>
 public record EventDto(
-    [property: Required(ErrorMessage = $"Поле Title обязательно для заполнения.")]
-    string? Title,
+    string Title,
     string? Description,
-    [property: Required(ErrorMessage = $"Поле StartAt обязательно для заполнения.")]
-    DateTime? StartAt,
-    [property: Required(ErrorMessage = $"Поле EndAt обязательно для заполнения.")]
-    DateTime? EndAt
+    DateTime StartAt,
+    DateTime EndAt
 ) : IValidatableObject
 {
     /// <summary>
@@ -29,6 +26,6 @@ public record EventDto(
         if (StartAt >= EndAt)
             yield return new ValidationResult(
                 "Дата завершения должна быть позже даты начала.",
-                new[] { nameof(StartAt), nameof(EndAt) });
+                [nameof(StartAt), nameof(EndAt)]);
     }
 }

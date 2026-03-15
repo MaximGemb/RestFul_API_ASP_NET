@@ -91,8 +91,8 @@ public class EventsControllerTests
             Id = Guid.NewGuid(),
             Title = dto.Title!,
             Description = dto.Description,
-            StartAt = dto.StartAt!.Value,
-            EndAt = dto.EndAt!.Value
+            StartAt = dto.StartAt,
+            EndAt = dto.EndAt
         };
 
         serviceMock
@@ -127,8 +127,8 @@ public class EventsControllerTests
                 Id = eventId,
                 Title = dto.Title!,
                 Description = dto.Description,
-                StartAt = dto.StartAt!.Value,
-                EndAt = dto.EndAt!.Value
+                StartAt = dto.StartAt,
+                EndAt = dto.EndAt
             });
 
         var controller = new EventsController(serviceMock.Object);

@@ -48,6 +48,6 @@ public class Event : IValidatableObject
         if (StartAt >= EndAt)
             yield return new ValidationResult(
                 "Дата завершения должна быть позже даты начала.",
-                new[] { nameof(StartAt), nameof(EndAt) });
+                [nameof(StartAt), nameof(EndAt)]);
     }
 }

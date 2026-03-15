@@ -79,7 +79,7 @@ public class EventService : IEventService
     public Task<Event> GetById(Guid id)
     {
         var ev = _events.FirstOrDefault(e => e.Id == id)
-                 ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found ");
+                 ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
 
         return Task.FromResult(ev);
     }
@@ -94,10 +94,10 @@ public class EventService : IEventService
         var newEvent = new Event
         {
             Id = Guid.NewGuid(),
-            Title = item.Title!,
+            Title = item.Title,
             Description = item.Description,
-            StartAt = item.StartAt!.Value,
-            EndAt = item.EndAt!.Value
+            StartAt = item.StartAt,
+            EndAt = item.EndAt
         };
         _events.Add(newEvent);
         return Task.FromResult(newEvent);
@@ -113,12 +113,12 @@ public class EventService : IEventService
     public Task<Event> Update(Guid id, EventDto item)
     {
         var ev = _events.FirstOrDefault(e => e.Id == id)
-                 ?? throw new NotFoundException(id, $"Can't update event with id {id}. Event not found ");
+                 ?? throw new NotFoundException(id, $"Can't update event with id {id}. Event not found");
 
-        ev.Title = item.Title!;
+        ev.Title = item.Title;
         ev.Description = item.Description;
-        ev.StartAt = item.StartAt!.Value;
-        ev.EndAt = item.EndAt!.Value;
+        ev.StartAt = item.StartAt;
+        ev.EndAt = item.EndAt;
 
         return Task.FromResult(ev);
     }
@@ -132,7 +132,7 @@ public class EventService : IEventService
     public Task Delete(Guid id)
     {
         var ev = _events.FirstOrDefault(e => e.Id == id)
-                 ?? throw new NotFoundException(id, $"Can't delete event with id {id}. Event not found ");
+                 ?? throw new NotFoundException(id, $"Can't delete event with id {id}. Event not found");
 
         _events.Remove(ev);
         return Task.CompletedTask;
