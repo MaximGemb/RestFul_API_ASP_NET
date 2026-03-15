@@ -16,8 +16,21 @@ public class EventService : IEventService
     /// 
     /// </summary>
     /// <returns></returns>
-    public Task<List<Event>> GetAll() =>
-        Task.FromResult(_events.ToList());
+    public Task<List<Event>> GetAll(string? title = null, DateTime? from = null, DateTime? to = null)
+    {
+        var query = _events.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(title))
+            query = query.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+
+        if (from.HasValue)
+            query = query.Where(e => e.StartAt >= from.Value);
+
+        if (to.HasValue)
+            query = query.Where(e => e.EndAt <= to.Value);
+
+        return Task.FromResult(query.ToList());
+    }
 
     /// <summary>
     /// 

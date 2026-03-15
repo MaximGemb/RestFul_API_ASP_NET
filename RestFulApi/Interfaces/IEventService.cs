@@ -11,7 +11,7 @@ public interface IEventService
     /// <summary>
     /// Получить все события
     /// </summary>
-    Task<List<Event>> GetAll();
+    Task<List<Event>> GetAll(string? title = null, DateTime? from = null, DateTime? to = null);
 
     /// <summary>
     /// Получить событие по Id

@@ -20,9 +20,10 @@ public class EventsController(IEventService eventService) : ControllerBase
     /// <response code="200">Успешное выполнение.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
+    public async Task<ActionResult<IEnumerable<Event>>> GetEvents([FromQuery] string? title = null, [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null)
     {
-        var events = await eventService.GetAll();
+        var events = await eventService.GetAll(title, from, to);
         return Ok(events);
     }
 
