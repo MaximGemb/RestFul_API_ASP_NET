@@ -54,9 +54,6 @@ public class EventsController(IEventService eventService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Event>> CreateEvent([FromBody] EventDto newEvent)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var createdEvent = await eventService.Create(newEvent);
 
         return CreatedAtAction(nameof(GetEvent), new { id = createdEvent.Id }, createdEvent);
@@ -77,9 +74,6 @@ public class EventsController(IEventService eventService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateEvent(Guid id, [FromBody] EventDto updatedEvent)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         await eventService.Update(id, updatedEvent);
         return NoContent();
     }

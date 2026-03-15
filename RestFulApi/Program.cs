@@ -21,9 +21,7 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(xmlPath);
 });
 
-
 var app = builder.Build();
-
 
 // Глобальная обработка исключений — должна быть зарегистрирована первой в pipeline
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();

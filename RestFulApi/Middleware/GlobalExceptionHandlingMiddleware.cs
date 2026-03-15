@@ -36,12 +36,10 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
             httpContext.Request.Path);
 
         if (httpContext.Response.HasStarted)
-        {
             return;
-        }
 
         var statusCode = MapStatusCode(ex);
-        var detailMessage = statusCode == StatusCodes.Status500InternalServerError
+        var detailMessage = statusCode is StatusCodes.Status500InternalServerError
             ? "An unexpected error occurred."
             : ex.Message;
 
@@ -60,8 +58,8 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
     private static int MapStatusCode(Exception ex)
         => ex switch
         {
-            ValidationException ve => StatusCodes.Status400BadRequest,
-            NotFoundException nfe => StatusCodes.Status404NotFound,
+            ValidationException => StatusCodes.Status400BadRequest,
+            NotFoundException => StatusCodes.Status404NotFound,
             _ => StatusCodes.Status500InternalServerError
         };
 }
