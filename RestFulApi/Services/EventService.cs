@@ -94,10 +94,10 @@ public class EventService : IEventService
         var newEvent = new Event
         {
             Id = Guid.NewGuid(),
-            Title = item.Title,
+            Title = item.Title!,
             Description = item.Description,
-            StartAt = item.StartAt,
-            EndAt = item.EndAt
+            StartAt = item.StartAt!.Value,
+            EndAt = item.EndAt!.Value
         };
         _events.Add(newEvent);
         return Task.FromResult(newEvent);
@@ -115,10 +115,10 @@ public class EventService : IEventService
         var ev = _events.FirstOrDefault(e => e.Id == id)
                  ?? throw new NotFoundException(id, $"Can't update event with id {id}. Event not found ");
 
-        ev.Title = item.Title;
+        ev.Title = item.Title!;
         ev.Description = item.Description;
-        ev.StartAt = item.StartAt;
-        ev.EndAt = item.EndAt;
+        ev.StartAt = item.StartAt!.Value;
+        ev.EndAt = item.EndAt!.Value;
 
         return Task.FromResult(ev);
     }

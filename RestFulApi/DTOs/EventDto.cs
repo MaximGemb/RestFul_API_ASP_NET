@@ -10,14 +10,13 @@ namespace RestFulApi.DTOs;
 /// <param name="StartAt">Дата и время начала события.</param>
 /// <param name="EndAt">Дата и время завершения события.</param>
 public record EventDto(
-    [Required(ErrorMessage = $"Поле {nameof(Title)} обязательно для заполнения.")]
-    string Title,
+    [property: Required(ErrorMessage = $"Поле Title обязательно для заполнения.")]
+    string? Title,
     string? Description,
-
-    [Required(ErrorMessage = $"Поле {nameof(StartAt)} обязательно для заполнения.")]
-    DateTime StartAt,
-    [Required(ErrorMessage = $"Поле {nameof(EndAt)} обязательно для заполнения.")]
-    DateTime EndAt
+    [property: Required(ErrorMessage = $"Поле StartAt обязательно для заполнения.")]
+    DateTime? StartAt,
+    [property: Required(ErrorMessage = $"Поле EndAt обязательно для заполнения.")]
+    DateTime? EndAt
 ) : IValidatableObject
 {
     /// <summary>
