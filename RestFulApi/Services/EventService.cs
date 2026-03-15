@@ -1,4 +1,5 @@
 using RestFulApi.DTOs;
+using RestFulApi.Exceptions;
 using RestFulApi.Interfaces;
 using RestFulApi.Models;
 
@@ -24,9 +25,10 @@ public class EventService : IEventService
     /// <param name="id"></param>
     /// <returns></returns>
     // ReSharper disable once HeapView.ClosureAllocation
-    public Task<Event?> GetById(Guid id)
+    public Task<Event> GetById(Guid id)
     {
-        var ev = _events.FirstOrDefault(e => e.Id == id);
+        var ev = _events.FirstOrDefault(e => e.Id == id)
+                 ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found ");
         return Task.FromResult(ev);
     }
 
@@ -56,18 +58,17 @@ public class EventService : IEventService
     /// <param name="item"></param>
     /// <returns></returns>
     // ReSharper disable once HeapView.ClosureAllocation
-    public Task<Event?> Update(Guid id, EventDto item)
+    public Task<Event> Update(Guid id, EventDto item)
     {
-        var ev = _events.FirstOrDefault(e => e.Id == id);
-        if (ev == null)
-            return Task.FromResult<Event?>(null);
+        var ev = _events.FirstOrDefault(e => e.Id == id)
+                 ?? throw new NotFoundException(id, $"Can't update event with id {id}. Event not found ");
 
         ev.Title = item.Title;
         ev.Description = item.Description;
         ev.StartAt = item.StartAt;
         ev.EndAt = item.EndAt;
 
-        return Task.FromResult<Event?>(ev);
+        return Task.FromResult(ev);
     }
 
     /// <summary>
@@ -76,12 +77,11 @@ public class EventService : IEventService
     /// <param name="id"></param>
     /// <returns></returns>
     // ReSharper disable once HeapView.ClosureAllocation
-    public Task<bool> Delete(Guid id)
+    public Task Delete(Guid id)
     {
-        var ev = _events.FirstOrDefault(e => e.Id == id);
-        if (ev is null)
-            return Task.FromResult(false);
+        var ev = _events.FirstOrDefault(e => e.Id == id)
+                 ?? throw new NotFoundException(id, $"Can't delete event with id {id}. Event not found ");
         _events.Remove(ev);
-        return Task.FromResult(true);
+        return Task.CompletedTask;
     }
 }

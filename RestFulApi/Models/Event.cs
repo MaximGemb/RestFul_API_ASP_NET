@@ -30,13 +30,13 @@ public class Event : IValidatableObject
     /// Дата начала события
     /// </summary>
     [Required(ErrorMessage = $"Поле {nameof(StartAt)} обязательно для заполнения.")]
-    public DateTime StartAt { get; set; }
+    public DateTime? StartAt { get; set; }
 
     /// <summary>
     /// Дата завершения события
     /// </summary>
     [Required(ErrorMessage = $"Поле {nameof(EndAt)} обязательно для заполнения.")]
-    public DateTime EndAt { get; set; }
+    public DateTime? EndAt { get; set; }
 
     /// <summary>
     /// Валидация. Дата начала должна быть меньше даты окончания

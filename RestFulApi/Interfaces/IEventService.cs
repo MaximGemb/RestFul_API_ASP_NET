@@ -16,7 +16,7 @@ public interface IEventService
     /// <summary>
     /// Получить событие по Id
     /// </summary>
-    Task<Event?> GetById(Guid id);
+    Task<Event> GetById(Guid id);
 
     /// <summary>
     /// Создать событие
@@ -26,10 +26,10 @@ public interface IEventService
     /// <summary>
     /// Обновить событие
     /// </summary>
-    Task<Event?> Update(Guid id, EventDto item);
+    Task<Event> Update(Guid id, EventDto item);
 
     /// <summary>
     /// Удалить событие
     /// </summary>
-    Task<bool> Delete(Guid id);
+    Task Delete(Guid id);
 }

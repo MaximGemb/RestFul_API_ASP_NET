@@ -39,9 +39,6 @@ public class EventsController(IEventService eventService) : ControllerBase
     public async Task<ActionResult<Event>> GetEvent(Guid id)
     {
         var ev = await eventService.GetById(id);
-        if (ev is null)
-            return NotFound();
-
         return Ok(ev);
     }
 
@@ -83,10 +80,7 @@ public class EventsController(IEventService eventService) : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var result = await eventService.Update(id, updatedEvent);
-        if (result is null)
-            return NotFound();
-
+        await eventService.Update(id, updatedEvent);
         return NoContent();
     }
 
@@ -102,10 +96,7 @@ public class EventsController(IEventService eventService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteEvent(Guid id)
     {
-        var result = await eventService.Delete(id);
-        if (!result)
-            return NotFound();
-
+        await eventService.Delete(id);
         return NoContent();
     }
 }
