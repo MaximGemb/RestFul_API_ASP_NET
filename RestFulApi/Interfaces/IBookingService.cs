@@ -22,4 +22,19 @@ public interface IBookingService
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Найденное бронирование.</returns>
     Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Получает список бронирований со статусом Pending.
+    /// </summary>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>Список ожидающих обработки бронирований.</returns>
+    Task<IEnumerable<Booking>> GetPendingBookingsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Обновляет информацию о бронировании.
+    /// </summary>
+    /// <param name="booking">Обновленное бронирование.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>Задача, представляющая асинхронную операцию.</returns>
+    Task UpdateBookingAsync(Booking booking, CancellationToken ct = default);
 }

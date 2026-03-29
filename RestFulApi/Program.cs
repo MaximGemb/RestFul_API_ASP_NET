@@ -14,6 +14,9 @@ builder.Services.AddSingleton<IEventService, EventService>();
 builder.Services.AddSingleton<IBookingService, BookingService>();
 builder.Services.AddSingleton<IBookingTaskQueue, InMemoryBookingTaskQueue>();
 
+// Регистрация фонового сервиса для обработки бронирований
+builder.Services.AddHostedService<BookingProcessingBackgroundService>();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(options =>

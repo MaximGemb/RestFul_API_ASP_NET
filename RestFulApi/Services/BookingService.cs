@@ -61,4 +61,37 @@ public class BookingService : IBookingService
 
         return Task.FromResult(booking);
     }
+
+    /// <summary>
+    /// Получает список бронирований со статусом Pending.
+    /// </summary>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>Список ожидающих обработки бронирований.</returns>
+    public Task<IEnumerable<Booking>> GetPendingBookingsAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var pendingBookings = _bookings.Where(b => b.Status == BookingStatus.Pending).ToList();
+
+        return Task.FromResult<IEnumerable<Booking>>(pendingBookings);
+    }
+
+    /// <summary>
+    /// Обновляет информацию о бронировании.
+    /// </summary>
+    /// <param name="booking">Обновленное бронирование.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>Задача, представляющая асинхронную операцию.</returns>
+    public Task UpdateBookingAsync(Booking booking, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var existingBooking = _bookings.FirstOrDefault(b => b.Id == booking.Id)
+                              ?? throw new NotFoundException(booking.Id, $"Бронь с идентификатором {booking.Id} не найдена.");
+
+        existingBooking.Status = booking.Status;
+        existingBooking.ProcessedAt = booking.ProcessedAt;
+
+        return Task.CompletedTask;
+    }
 }

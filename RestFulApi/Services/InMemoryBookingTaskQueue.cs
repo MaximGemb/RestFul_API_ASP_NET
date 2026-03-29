@@ -15,18 +15,14 @@ public class InMemoryBookingTaskQueue : IBookingTaskQueue
     /// Добавляет задачу в очередь.
     /// </summary>
     /// <param name="task">Задача на генерацию отчета.</param>
-    public void Enqueue(BookingTask task)
-    {
+    public void Enqueue(BookingTask task) => 
         _queue.Enqueue(task);
-    }
 
     /// <summary>
     /// Пытается извлечь задачу из очереди.
     /// </summary>
     /// <param name="task">Извлеченная задача, если очередь не пуста.</param>
     /// <returns>True, если задача успешно извлечена, иначе False.</returns>
-    public bool TryDequeue(out BookingTask task)
-    {
-        return _queue.TryDequeue(out task!);
-    }
+    public bool TryDequeue(out BookingTask task) => 
+        _queue.TryDequeue(out task!);
 }
