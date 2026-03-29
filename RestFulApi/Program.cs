@@ -12,6 +12,7 @@ builder.Services.AddControllers();
 // Регистрация сервисов как Singleton (в памяти для всех запросов)
 builder.Services.AddSingleton<IEventService, EventService>();
 builder.Services.AddSingleton<IBookingService, BookingService>();
+builder.Services.AddSingleton<IBookingTaskQueue, InMemoryBookingTaskQueue>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
