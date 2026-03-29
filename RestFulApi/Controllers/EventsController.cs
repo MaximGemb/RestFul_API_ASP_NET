@@ -12,7 +12,7 @@ namespace RestFulApi.Controllers;
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
-public class EventsController(IEventService eventService) : ControllerBase
+public class EventsController(IEventService eventService, IBookingService bookingService) : ControllerBase
 {
     /// <summary>
     /// Получить список событий с фильтрацией и пагинацией.
@@ -109,5 +109,24 @@ public class EventsController(IEventService eventService) : ControllerBase
     {
         await eventService.DeleteAsync(id, ct);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Забронировать участие в событии.
+    /// </summary>
+    /// <param name="id">Идентификатор события.</param>
+    /// <param name="ct">Токен отмены.</param>
+    /// <returns>Информация о созданной брони.</returns>
+    /// <response code="202">Запрос на бронирование принят в обработку.</response>
+    /// <response code="404">Событие не найдено.</response>
+    [HttpPost("{id:guid}/book")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> BookEvent(Guid id, CancellationToken ct)
+    {
+        var booking = await bookingService.CreateBookingAsync(id, ct);
+
+        // Возвращаем Location заголовок и информацию о брони
+        return AcceptedAtAction("GetBooking", "Bookings", new { id = booking.Id }, booking);
     }
 }

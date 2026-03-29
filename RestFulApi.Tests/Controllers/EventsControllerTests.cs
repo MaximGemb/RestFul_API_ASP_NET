@@ -38,7 +38,7 @@ public class EventsControllerTests
             .Setup(service => service.GetAllAsync(null, null, null, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
-        var controller = new EventsController(serviceMock.Object);
+        var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
         var cts = new CancellationTokenSource();
 
         // Act
@@ -70,7 +70,7 @@ public class EventsControllerTests
             .Setup(service => service.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
-        var controller = new EventsController(serviceMock.Object);
+        var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
         var cts = new CancellationTokenSource();
 
         // Act
@@ -101,7 +101,7 @@ public class EventsControllerTests
             .Setup(service => service.CreateAsync(dto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(created);
 
-        var controller = new EventsController(serviceMock.Object);
+        var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
         var cts = new CancellationTokenSource();
 
         // Act
@@ -134,7 +134,7 @@ public class EventsControllerTests
                 EndAt = dto.EndAt
             });
 
-        var controller = new EventsController(serviceMock.Object);
+        var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
         var cts = new CancellationTokenSource();
 
         // Act
@@ -155,7 +155,7 @@ public class EventsControllerTests
             .Setup(service => service.DeleteAsync(eventId, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var controller = new EventsController(serviceMock.Object);
+        var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
         var cts = new CancellationTokenSource();
 
         // Act
