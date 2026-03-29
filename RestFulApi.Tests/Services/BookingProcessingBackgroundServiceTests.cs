@@ -34,7 +34,7 @@ public class BookingProcessingBackgroundServiceTests
             .Returns(_bookingServiceMock.Object);
 
         _backgroundService = new TestBookingProcessingBackgroundService(
-            serviceProviderMock.Object,
+            _bookingServiceMock.Object,
             loggerMock.Object);
     }
 
@@ -86,7 +86,7 @@ public class BookingProcessingBackgroundServiceTests
         _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Booking> { pendingBooking });
 
-        _backgroundService.DelayAction = async (token) => 
+        _backgroundService.DelayAction = async token => 
         {
             await Task.Delay(1000, token);
         };
@@ -112,10 +112,13 @@ public class BookingProcessingBackgroundServiceTests
         var pendingBooking = new Booking { Id = Guid.NewGuid(), Status = BookingStatus.Pending, ProcessedAt = null };
         
         _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Booking> { pendingBooking })
-            .Callback(() => cts.Cancel()); // Отменяем после получения, чтобы завершить цикл
+            .ReturnsAsync(new List<Booking> { pendingBooking });
 
-        _backgroundService.DelayAction = (token) => Task.CompletedTask; // Мгновенное выполнение
+        _bookingServiceMock.Setup(s => s.UpdateBookingAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(() => cts.Cancel()); // Отменяем после обновления, чтобы завершить цикл
+
+        _backgroundService.DelayAction = _ => Task.CompletedTask; // Мгновенное выполнение
 
         // Act
         var exception = await Record.ExceptionAsync(() => _backgroundService.ExposeExecuteAsync(cts.Token));
@@ -134,7 +137,7 @@ public class BookingProcessingBackgroundServiceTests
     {
         // Arrange
         var cts = new CancellationTokenSource();
-        cts.Cancel(); // Отменяем сразу, чтобы тест не шел 1 минуту
+        await cts.CancelAsync(); // Отменяем сразу, чтобы тест не шел 1 минуту
 
         // Act & Assert
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => 
@@ -172,12 +175,12 @@ public class BookingProcessingBackgroundServiceTests
     /// Вспомогательный класс для тестирования защищенного метода ExecuteAsync.
     /// </summary>
     private class TestBookingProcessingBackgroundService(
-        IServiceProvider serviceProvider,
+        IBookingService bookingService,
         ILogger<BookingProcessingBackgroundService> logger)
-        : BookingProcessingBackgroundService(serviceProvider, logger)
+        : BookingProcessingBackgroundService(bookingService, logger)
     {
         public Func<CancellationToken, Task> DelayAction { get; set; } = 
-            (token) => Task.Delay(TimeSpan.FromMinutes(1), token);
+            token => Task.Delay(TimeSpan.FromMinutes(1), token);
 
         public Task ExposeExecuteAsync(CancellationToken stoppingToken) => 
             ExecuteAsync(stoppingToken);

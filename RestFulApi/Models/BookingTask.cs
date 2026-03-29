@@ -8,6 +8,7 @@ public class BookingTask
     /// <summary>
     /// Уникальный идентификатор задачи.
     /// </summary>
+    // ReSharper disable once PropertyCanBeMadeInitOnly.Global
     public Guid Id { get; set; }
 
     /// <summary>

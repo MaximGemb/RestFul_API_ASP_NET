@@ -8,19 +8,20 @@ namespace RestFulApi.Services;
 /// </summary>
 public class BookingProcessingBackgroundService : BackgroundService
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IBookingService _bookingService;
     private readonly ILogger<BookingProcessingBackgroundService> _logger;
 
     /// <summary>
     /// Инициализирует новый экземпляр класса <see cref="BookingProcessingBackgroundService"/>.
     /// </summary>
-    /// <param name="serviceProvider">Провайдер сервисов для создания области видимости (Scope).</param>
+    /// <param name="bookingService">Провайдер сервисов для создания области видимости (Scope).</param>
     /// <param name="logger">Логгер.</param>
+    // ReSharper disable once MemberCanBeProtected.Global
     public BookingProcessingBackgroundService(
-        IServiceProvider serviceProvider,
+        IBookingService bookingService,
         ILogger<BookingProcessingBackgroundService> logger)
     {
-        _serviceProvider = serviceProvider;
+        _bookingService = bookingService;
         _logger = logger;
     }
 
@@ -37,16 +38,12 @@ public class BookingProcessingBackgroundService : BackgroundService
         {
             try
             {
-                // Создаем scope, чтобы получить сервисы, зависящие от области видимости,
-                // даже если IBookingService зарегистрирован как Singleton, 
-                // использование IServiceProvider - хорошая практика для BackgroundService.
-                using var scope = _serviceProvider.CreateScope();
-                var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
 
-                var pendingBookings = await bookingService.GetPendingBookingsAsync(stoppingToken);
+                var pendingBookings = await _bookingService.GetPendingBookingsAsync(stoppingToken);
 
                 foreach (var booking in pendingBookings)
                 {
+                    stoppingToken.ThrowIfCancellationRequested();
                     // Имитация долгой обработки внешним сервисом
                     await DelayProcessingAsync(stoppingToken);
 
@@ -56,7 +53,7 @@ public class BookingProcessingBackgroundService : BackgroundService
                         : BookingStatus.Rejected;
                     booking.ProcessedAt = DateTime.UtcNow;
 
-                    await bookingService.UpdateBookingAsync(booking, stoppingToken);
+                    await _bookingService.UpdateBookingAsync(booking, stoppingToken);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -79,5 +76,5 @@ public class BookingProcessingBackgroundService : BackgroundService
     /// Имитирует долгую обработку.
     /// </summary>
     protected virtual Task DelayProcessingAsync(CancellationToken stoppingToken) => 
-        Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+        Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
 }
