@@ -16,9 +16,10 @@ public class EventServiceTests
         var service = new EventService();
         var dto = CreateEventDto("Tech Conference", new DateTime(2026, 04, 10, 9, 0, 0),
             new DateTime(2026, 04, 10, 18, 0, 0));
+        var cts = new CancellationTokenSource();
 
         // Act
-        var createdEvent = await service.Create(dto);
+        var createdEvent = await service.CreateAsync(dto, cts.Token);
 
         // Assert
         createdEvent.Id.Should().NotBe(Guid.Empty);
@@ -33,11 +34,12 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
-        await service.Create(CreateEventDto("Alpha Meetup", new DateTime(2026, 04, 01), new DateTime(2026, 04, 02)));
-        await service.Create(CreateEventDto("Beta Meetup", new DateTime(2026, 04, 03), new DateTime(2026, 04, 04)));
+        var cts = new CancellationTokenSource();
+        await service.CreateAsync(CreateEventDto("Alpha Meetup", new DateTime(2026, 04, 01), new DateTime(2026, 04, 02)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Beta Meetup", new DateTime(2026, 04, 03), new DateTime(2026, 04, 04)), cts.Token);
 
         // Act
-        var result = await service.GetAll();
+        var result = await service.GetAllAsync(ct: cts.Token);
 
         // Assert
         result.TotalCount.Should().Be(2);
@@ -51,11 +53,12 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
+        var cts = new CancellationTokenSource();
         var createdEvent =
-            await service.Create(CreateEventDto("Music Fest", new DateTime(2026, 05, 01), new DateTime(2026, 05, 02)));
+            await service.CreateAsync(CreateEventDto("Music Fest", new DateTime(2026, 05, 01), new DateTime(2026, 05, 02)), cts.Token);
 
         // Act
-        var result = await service.GetById(createdEvent.Id);
+        var result = await service.GetByIdAsync(createdEvent.Id, cts.Token);
 
         // Assert
         result.Id.Should().Be(createdEvent.Id);
@@ -67,13 +70,14 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
+        var cts = new CancellationTokenSource();
         var createdEvent =
-            await service.Create(CreateEventDto("Old Title", new DateTime(2026, 06, 01), new DateTime(2026, 06, 02)));
+            await service.CreateAsync(CreateEventDto("Old Title", new DateTime(2026, 06, 01), new DateTime(2026, 06, 02)), cts.Token);
         var updatedDto = CreateEventDto("New Title", new DateTime(2026, 06, 03), new DateTime(2026, 06, 04),
             "Updated description");
 
         // Act
-        var updatedEvent = await service.Update(createdEvent.Id, updatedDto);
+        var updatedEvent = await service.UpdateAsync(createdEvent.Id, updatedDto, cts.Token);
 
         // Assert
         updatedEvent.Id.Should().Be(createdEvent.Id);
@@ -88,14 +92,15 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
+        var cts = new CancellationTokenSource();
         var createdEvent =
-            await service.Create(CreateEventDto("Delete Me", new DateTime(2026, 07, 01), new DateTime(2026, 07, 02)));
+            await service.CreateAsync(CreateEventDto("Delete Me", new DateTime(2026, 07, 01), new DateTime(2026, 07, 02)), cts.Token);
 
         // Act
-        await service.Delete(createdEvent.Id);
+        await service.DeleteAsync(createdEvent.Id, cts.Token);
 
         // Assert
-        var action = () => service.GetById(createdEvent.Id);
+        var action = () => service.GetByIdAsync(createdEvent.Id, cts.Token);
         await action.Should().ThrowAsync<NotFoundException>();
     }
 
@@ -104,12 +109,13 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
-        await service.Create(
-            CreateEventDto("DotNet Conference", new DateTime(2026, 03, 01), new DateTime(2026, 03, 02)));
-        await service.Create(CreateEventDto("Java Summit", new DateTime(2026, 03, 03), new DateTime(2026, 03, 04)));
+        var cts = new CancellationTokenSource();
+        await service.CreateAsync(
+            CreateEventDto("DotNet Conference", new DateTime(2026, 03, 01), new DateTime(2026, 03, 02)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Java Summit", new DateTime(2026, 03, 03), new DateTime(2026, 03, 04)), cts.Token);
 
         // Act
-        var result = await service.GetAll(title: "dotnet");
+        var result = await service.GetAllAsync(title: "dotnet", ct: cts.Token);
 
         // Assert
         result.Items.Should().ContainSingle();
@@ -122,12 +128,13 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
-        await service.Create(CreateEventDto("Event A", new DateTime(2026, 01, 01), new DateTime(2026, 01, 02)));
-        await service.Create(CreateEventDto("Event B", new DateTime(2026, 01, 10), new DateTime(2026, 01, 11)));
-        await service.Create(CreateEventDto("Event C", new DateTime(2026, 01, 20), new DateTime(2026, 01, 21)));
+        var cts = new CancellationTokenSource();
+        await service.CreateAsync(CreateEventDto("Event A", new DateTime(2026, 01, 01), new DateTime(2026, 01, 02)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Event B", new DateTime(2026, 01, 10), new DateTime(2026, 01, 11)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Event C", new DateTime(2026, 01, 20), new DateTime(2026, 01, 21)), cts.Token);
 
         // Act
-        var result = await service.GetAll(from: new DateTime(2026, 01, 05), to: new DateTime(2026, 01, 15));
+        var result = await service.GetAllAsync(from: new DateTime(2026, 01, 05), to: new DateTime(2026, 01, 15), ct: cts.Token);
 
         // Assert
         result.Items.Should().ContainSingle();
@@ -139,12 +146,13 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
-        await service.Create(CreateEventDto("Event 1", new DateTime(2026, 01, 01), new DateTime(2026, 01, 02)));
-        await service.Create(CreateEventDto("Event 2", new DateTime(2026, 01, 03), new DateTime(2026, 01, 04)));
-        await service.Create(CreateEventDto("Event 3", new DateTime(2026, 01, 05), new DateTime(2026, 01, 06)));
+        var cts = new CancellationTokenSource();
+        await service.CreateAsync(CreateEventDto("Event 1", new DateTime(2026, 01, 01), new DateTime(2026, 01, 02)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Event 2", new DateTime(2026, 01, 03), new DateTime(2026, 01, 04)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Event 3", new DateTime(2026, 01, 05), new DateTime(2026, 01, 06)), cts.Token);
 
         // Act
-        var result = await service.GetAll(page: 2, pageSize: 1);
+        var result = await service.GetAllAsync(page: 2, pageSize: 1, ct: cts.Token);
 
         // Assert
         result.TotalCount.Should().Be(3);
@@ -159,18 +167,20 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
-        await service.Create(CreateEventDto("Backend Meetup", new DateTime(2026, 08, 01), new DateTime(2026, 08, 02)));
-        await service.Create(
-            CreateEventDto("Backend Deep Dive", new DateTime(2026, 08, 03), new DateTime(2026, 08, 04)));
-        await service.Create(CreateEventDto("Frontend Meetup", new DateTime(2026, 08, 03), new DateTime(2026, 08, 04)));
+        var cts = new CancellationTokenSource();
+        await service.CreateAsync(CreateEventDto("Backend Meetup", new DateTime(2026, 08, 01), new DateTime(2026, 08, 02)), cts.Token);
+        await service.CreateAsync(
+            CreateEventDto("Backend Deep Dive", new DateTime(2026, 08, 03), new DateTime(2026, 08, 04)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Frontend Meetup", new DateTime(2026, 08, 03), new DateTime(2026, 08, 04)), cts.Token);
 
         // Act
-        var result = await service.GetAll(
+        var result = await service.GetAllAsync(
             title: "backend",
             from: new DateTime(2026, 08, 02),
             to: new DateTime(2026, 08, 04),
             page: 1,
-            pageSize: 10);
+            pageSize: 10,
+            ct: cts.Token);
 
         // Assert
         result.Items.Should().ContainSingle();
@@ -183,10 +193,11 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
+        var cts = new CancellationTokenSource();
         var missingId = Guid.NewGuid();
 
         // Act
-        var action = () => service.GetById(missingId);
+        var action = () => service.GetByIdAsync(missingId, cts.Token);
 
         // Assert
         await action.Should().ThrowAsync<NotFoundException>();
@@ -197,11 +208,12 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
+        var cts = new CancellationTokenSource();
         var missingId = Guid.NewGuid();
         var dto = CreateEventDto("Updated Event", new DateTime(2026, 09, 01), new DateTime(2026, 09, 02));
 
         // Act
-        var action = () => service.Update(missingId, dto);
+        var action = () => service.UpdateAsync(missingId, dto, cts.Token);
 
         // Assert
         await action.Should().ThrowAsync<NotFoundException>();
@@ -212,11 +224,12 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
-        await service.Create(CreateEventDto("Alpha", new DateTime(2026, 12, 01), new DateTime(2026, 12, 02)));
-        await service.Create(CreateEventDto("Beta", new DateTime(2026, 12, 03), new DateTime(2026, 12, 04)));
+        var cts = new CancellationTokenSource();
+        await service.CreateAsync(CreateEventDto("Alpha", new DateTime(2026, 12, 01), new DateTime(2026, 12, 02)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Beta", new DateTime(2026, 12, 03), new DateTime(2026, 12, 04)), cts.Token);
 
         // Act
-        var result = await service.GetAll(title: string.Empty);
+        var result = await service.GetAllAsync(title: string.Empty, ct: cts.Token);
 
         // Assert
         result.TotalCount.Should().Be(2);
@@ -228,11 +241,12 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
-        await service.Create(CreateEventDto("Alpha", new DateTime(2026, 12, 05), new DateTime(2026, 12, 06)));
-        await service.Create(CreateEventDto("Beta", new DateTime(2026, 12, 07), new DateTime(2026, 12, 08)));
+        var cts = new CancellationTokenSource();
+        await service.CreateAsync(CreateEventDto("Alpha", new DateTime(2026, 12, 05), new DateTime(2026, 12, 06)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Beta", new DateTime(2026, 12, 07), new DateTime(2026, 12, 08)), cts.Token);
 
         // Act
-        var result = await service.GetAll(title: "   ");
+        var result = await service.GetAllAsync(title: "   ", ct: cts.Token);
 
         // Assert
         result.TotalCount.Should().Be(2);
@@ -244,13 +258,14 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
+        var cts = new CancellationTokenSource();
         var boundaryStart = new DateTime(2027, 01, 10, 9, 0, 0);
-        await service.Create(CreateEventDto("Boundary Start", boundaryStart, new DateTime(2027, 01, 10, 12, 0, 0)));
-        await service.Create(CreateEventDto("Earlier Event", new DateTime(2027, 01, 09, 9, 0, 0),
-            new DateTime(2027, 01, 09, 12, 0, 0)));
+        await service.CreateAsync(CreateEventDto("Boundary Start", boundaryStart, new DateTime(2027, 01, 10, 12, 0, 0)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Earlier Event", new DateTime(2027, 01, 09, 9, 0, 0),
+            new DateTime(2027, 01, 09, 12, 0, 0)), cts.Token);
 
         // Act
-        var result = await service.GetAll(from: boundaryStart);
+        var result = await service.GetAllAsync(from: boundaryStart, ct: cts.Token);
 
         // Assert
         result.Items.Should().ContainSingle(item => item.Title == "Boundary Start");
@@ -261,13 +276,14 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
+        var cts = new CancellationTokenSource();
         var boundaryEnd = new DateTime(2027, 01, 15, 18, 0, 0);
-        await service.Create(CreateEventDto("Boundary End", new DateTime(2027, 01, 15, 9, 0, 0), boundaryEnd));
-        await service.Create(CreateEventDto("Later Event", new DateTime(2027, 01, 16, 9, 0, 0),
-            new DateTime(2027, 01, 16, 18, 0, 0)));
+        await service.CreateAsync(CreateEventDto("Boundary End", new DateTime(2027, 01, 15, 9, 0, 0), boundaryEnd), cts.Token);
+        await service.CreateAsync(CreateEventDto("Later Event", new DateTime(2027, 01, 16, 9, 0, 0),
+            new DateTime(2027, 01, 16, 18, 0, 0)), cts.Token);
 
         // Act
-        var result = await service.GetAll(to: boundaryEnd);
+        var result = await service.GetAllAsync(to: boundaryEnd, ct: cts.Token);
 
         // Assert
         result.Items.Should().ContainSingle(item => item.Title == "Boundary End");
@@ -278,10 +294,11 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
-        await service.Create(CreateEventDto("Only Event", new DateTime(2027, 02, 01), new DateTime(2027, 02, 02)));
+        var cts = new CancellationTokenSource();
+        await service.CreateAsync(CreateEventDto("Only Event", new DateTime(2027, 02, 01), new DateTime(2027, 02, 02)), cts.Token);
 
         // Act
-        var result = await service.GetAll(page: 3, pageSize: 1);
+        var result = await service.GetAllAsync(page: 3, pageSize: 1, ct: cts.Token);
 
         // Assert
         result.TotalCount.Should().Be(1);
@@ -295,11 +312,12 @@ public class EventServiceTests
     {
         // Arrange
         var service = new EventService();
-        await service.Create(CreateEventDto("Event A", new DateTime(2027, 03, 01), new DateTime(2027, 03, 02)));
-        await service.Create(CreateEventDto("Event B", new DateTime(2027, 03, 03), new DateTime(2027, 03, 04)));
+        var cts = new CancellationTokenSource();
+        await service.CreateAsync(CreateEventDto("Event A", new DateTime(2027, 03, 01), new DateTime(2027, 03, 02)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Event B", new DateTime(2027, 03, 03), new DateTime(2027, 03, 04)), cts.Token);
 
         // Act
-        var result = await service.GetAll(page: 1, pageSize: 2);
+        var result = await service.GetAllAsync(page: 1, pageSize: 2, ct: cts.Token);
 
         // Assert
         result.TotalCount.Should().Be(2);

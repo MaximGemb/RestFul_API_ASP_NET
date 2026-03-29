@@ -20,11 +20,14 @@ public class EventService : IEventService
     /// <param name="to">Максимальная дата окончания события.</param>
     /// <param name="page">Номер страницы, начиная с 1.</param>
     /// <param name="pageSize">Количество элементов на странице.</param>
+    /// <param name="ct">Токен отмены.</param>
     /// <returns>Результат пагинации со списком найденных событий.</returns>
-    public Task<PaginatedResult<Event>> GetAll(string? title = null, DateTime? from = null, DateTime? to = null,
+    public Task<PaginatedResult<Event>> GetAllAsync(string? title = null, DateTime? from = null, DateTime? to = null,
         int page = 1,
-        int pageSize = 10)
+        int pageSize = 10, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var query = _events.AsEnumerable();
 
         if (!string.IsNullOrWhiteSpace(title))
@@ -74,10 +77,13 @@ public class EventService : IEventService
     /// Возвращает событие по идентификатору.
     /// </summary>
     /// <param name="id">Идентификатор события.</param>
+    /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Найденное событие.</returns>
     // ReSharper disable once HeapView.ClosureAllocation
-    public Task<Event> GetById(Guid id)
+    public Task<Event> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var ev = _events.FirstOrDefault(e => e.Id == id)
                  ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
 
@@ -88,9 +94,12 @@ public class EventService : IEventService
     /// Создает новое событие.
     /// </summary>
     /// <param name="item">Данные создаваемого события.</param>
+    /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Созданное событие.</returns>
-    public Task<Event> Create(EventDto item)
+    public Task<Event> CreateAsync(EventDto item, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var newEvent = new Event
         {
             Id = Guid.NewGuid(),
@@ -108,10 +117,13 @@ public class EventService : IEventService
     /// </summary>
     /// <param name="id">Идентификатор обновляемого события.</param>
     /// <param name="item">Новые данные события.</param>
+    /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Обновленное событие.</returns>
     // ReSharper disable once HeapView.ClosureAllocation
-    public Task<Event> Update(Guid id, EventDto item)
+    public Task<Event> UpdateAsync(Guid id, EventDto item, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var ev = _events.FirstOrDefault(e => e.Id == id)
                  ?? throw new NotFoundException(id, $"Can't update event with id {id}. Event not found");
 
@@ -127,10 +139,13 @@ public class EventService : IEventService
     /// Удаляет событие по идентификатору.
     /// </summary>
     /// <param name="id">Идентификатор удаляемого события.</param>
+    /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Задача, представляющая завершение операции удаления.</returns>
     // ReSharper disable once HeapView.ClosureAllocation
-    public Task Delete(Guid id)
+    public Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var ev = _events.FirstOrDefault(e => e.Id == id)
                  ?? throw new NotFoundException(id, $"Can't delete event with id {id}. Event not found");
 
