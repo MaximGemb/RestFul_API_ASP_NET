@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using RestFulApi.Interfaces;
 using RestFulApi.Middleware;
 using RestFulApi.Services;
@@ -7,7 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 // Регистрация сервисов как Singleton (в памяти для всех запросов)
 builder.Services.AddSingleton<IEventService, EventService>();

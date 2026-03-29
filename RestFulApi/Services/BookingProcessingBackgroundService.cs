@@ -51,7 +51,9 @@ public class BookingProcessingBackgroundService : BackgroundService
                     await DelayProcessingAsync(stoppingToken);
 
                     // Обновляем статус и время обработки
-                    booking.Status = BookingStatus.Confirmed;
+                    booking.Status = Random.Shared.Next(2) is 0 
+                        ? BookingStatus.Confirmed 
+                        : BookingStatus.Rejected;
                     booking.ProcessedAt = DateTime.UtcNow;
 
                     await bookingService.UpdateBookingAsync(booking, stoppingToken);

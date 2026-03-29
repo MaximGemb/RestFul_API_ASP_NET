@@ -125,7 +125,7 @@ public class BookingProcessingBackgroundServiceTests
 
         _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.Is<Booking>(b => 
             b.Id == pendingBooking.Id && 
-            b.Status == BookingStatus.Confirmed && 
+            (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Rejected) && 
             b.ProcessedAt != null), It.IsAny<CancellationToken>()), Times.Once);
     }
 
