@@ -48,7 +48,7 @@ public class BookingProcessingBackgroundService : BackgroundService
                 foreach (var booking in pendingBookings)
                 {
                     // Имитация долгой обработки внешним сервисом
-                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                    await DelayProcessingAsync(stoppingToken);
 
                     // Обновляем статус и время обработки
                     booking.Status = BookingStatus.Confirmed;
@@ -72,4 +72,10 @@ public class BookingProcessingBackgroundService : BackgroundService
 
         _logger.LogInformation("BookingProcessingBackgroundService остановлен");
     }
+
+    /// <summary>
+    /// Имитирует долгую обработку.
+    /// </summary>
+    protected virtual Task DelayProcessingAsync(CancellationToken stoppingToken) => 
+        Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
 }

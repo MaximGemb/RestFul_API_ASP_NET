@@ -164,4 +164,38 @@ public class EventsControllerTests
         // Assert
         result.Should().BeOfType<NoContentResult>();
     }
+
+    [Fact]
+    public async Task BookEvent_ShouldReturnAcceptedAtAction_WhenBookingIsCreated()
+    {
+        // Arrange
+        var eventId = Guid.NewGuid();
+        var bookingId = Guid.NewGuid();
+        var booking = new Booking
+        {
+            Id = bookingId,
+            EventId = eventId,
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var bookingServiceMock = new Mock<IBookingService>();
+        bookingServiceMock
+            .Setup(service => service.CreateBookingAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(booking);
+
+        var controller = new EventsController(new Mock<IEventService>().Object, bookingServiceMock.Object);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var result = await controller.BookEvent(eventId, cts.Token);
+
+        // Assert
+        var acceptedResult = result.Should().BeOfType<AcceptedAtActionResult>().Subject;
+        acceptedResult.ActionName.Should().Be("GetBooking");
+        acceptedResult.ControllerName.Should().Be("Bookings");
+        acceptedResult.RouteValues!["id"].Should().Be(booking.Id);
+        var value = acceptedResult.Value.Should().BeOfType<Booking>().Subject;
+        value.Id.Should().Be(booking.Id);
+    }
 }
