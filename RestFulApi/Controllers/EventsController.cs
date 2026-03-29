@@ -10,7 +10,7 @@ namespace RestFulApi.Controllers;
 /// Контроллер для управления событиями.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Produces("application/json")]
 public class EventsController(IEventService eventService) : ControllerBase
 {
