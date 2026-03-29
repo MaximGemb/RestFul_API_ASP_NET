@@ -1,5 +1,6 @@
 using System.Reflection;
 using RestFulApi.Interfaces;
+using RestFulApi.Middleware;
 using RestFulApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,8 +21,10 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(xmlPath);
 });
 
-
 var app = builder.Build();
+
+// Глобальная обработка исключений — должна быть зарегистрирована первой в pipeline
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

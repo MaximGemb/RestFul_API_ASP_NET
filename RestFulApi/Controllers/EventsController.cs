@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using RestFulApi.DTOs;
 using RestFulApi.Interfaces;
@@ -14,15 +15,25 @@ namespace RestFulApi.Controllers;
 public class EventsController(IEventService eventService) : ControllerBase
 {
     /// <summary>
-    /// Получить список всех событий.
+    /// Получить список событий с фильтрацией и пагинацией.
     /// </summary>
-    /// <returns>Список событий.</returns>
+    /// <param name="title">Фильтр по части названия события.</param>
+    /// <param name="from">Минимальная дата начала события.</param>
+    /// <param name="to">Максимальная дата окончания события.</param>
+    /// <param name="page">Номер страницы, начиная с 1.</param>
+    /// <param name="pageSize">Количество элементов на странице.</param>
+    /// <returns>Пагинированный список событий.</returns>
     /// <response code="200">Успешное выполнение.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
+    public async Task<ActionResult<PaginatedResult<Event>>> GetEvents(
+        [FromQuery] string? title = null,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] [Range(1, int.MaxValue)] int pageSize = 10)
     {
-        var events = await eventService.GetAll();
+        var events = await eventService.GetAll(title, from, to, page, pageSize);
         return Ok(events);
     }
 
@@ -39,9 +50,6 @@ public class EventsController(IEventService eventService) : ControllerBase
     public async Task<ActionResult<Event>> GetEvent(Guid id)
     {
         var ev = await eventService.GetById(id);
-        if (ev is null)
-            return NotFound();
-
         return Ok(ev);
     }
 
@@ -57,9 +65,6 @@ public class EventsController(IEventService eventService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Event>> CreateEvent([FromBody] EventDto newEvent)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var createdEvent = await eventService.Create(newEvent);
 
         return CreatedAtAction(nameof(GetEvent), new { id = createdEvent.Id }, createdEvent);
@@ -80,13 +85,7 @@ public class EventsController(IEventService eventService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateEvent(Guid id, [FromBody] EventDto updatedEvent)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        var result = await eventService.Update(id, updatedEvent);
-        if (result is null)
-            return NotFound();
-
+        await eventService.Update(id, updatedEvent);
         return NoContent();
     }
 
@@ -102,10 +101,7 @@ public class EventsController(IEventService eventService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteEvent(Guid id)
     {
-        var result = await eventService.Delete(id);
-        if (!result)
-            return NotFound();
-
+        await eventService.Delete(id);
         return NoContent();
     }
 }
