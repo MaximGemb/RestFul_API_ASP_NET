@@ -14,6 +14,7 @@ public class EventTests
         {
             Id = Guid.NewGuid(),
             Title = "Test Event",
+            TotalSeats = 1,
             StartAt = new DateTime(2023, 1, 2, 10, 0, 0),
             EndAt = new DateTime(2023, 1, 1, 10, 0, 0)
         };
@@ -38,6 +39,7 @@ public class EventTests
         {
             Id = Guid.NewGuid(),
             Title = "Test Event",
+            TotalSeats = 1,
             StartAt = date,
             EndAt = date
         };
@@ -59,6 +61,7 @@ public class EventTests
         {
             Id = Guid.NewGuid(),
             Title = "Test Event",
+            TotalSeats = 1,
             StartAt = new DateTime(2023, 1, 1, 10, 0, 0),
             EndAt = new DateTime(2023, 1, 2, 10, 0, 0)
         };

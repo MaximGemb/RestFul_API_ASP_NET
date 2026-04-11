@@ -24,7 +24,7 @@ public class BookingServiceTests
     {
         // Arrange
         var eventId = Guid.NewGuid();
-        var eventItem = new Event { Id = eventId, Title = "Test Event", Description = "Description", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow.AddDays(1) };
+        var eventItem = new Event { Id = eventId, Title = "Test Event", Description = "Description", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow.AddDays(1), TotalSeats = 10, AvailableSeats = 10 };
         
         _eventServiceMock.Setup(s => s.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(eventItem);
@@ -44,7 +44,7 @@ public class BookingServiceTests
     {
         // Arrange
         var eventId = Guid.NewGuid();
-        var eventItem = new Event { Id = eventId, Title = "Test Event", Description = "Description", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow.AddDays(1) };
+        var eventItem = new Event { Id = eventId, Title = "Test Event", Description = "Description", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow.AddDays(1), TotalSeats = 10, AvailableSeats = 10 };
         
         _eventServiceMock.Setup(s => s.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(eventItem);
@@ -65,7 +65,7 @@ public class BookingServiceTests
     {
         // Arrange
         var eventId = Guid.NewGuid();
-        var eventItem = new Event { Id = eventId, Title = "Test Event", Description = "Description", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow.AddDays(1) };
+        var eventItem = new Event { Id = eventId, Title = "Test Event", Description = "Description", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow.AddDays(1), TotalSeats = 10, AvailableSeats = 10 };
         
         _eventServiceMock.Setup(s => s.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(eventItem);
@@ -87,7 +87,7 @@ public class BookingServiceTests
     {
         // Arrange
         var eventId = Guid.NewGuid();
-        var eventItem = new Event { Id = eventId, Title = "Test Event", Description = "Description", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow.AddDays(1) };
+        var eventItem = new Event { Id = eventId, Title = "Test Event", Description = "Description", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow.AddDays(1), TotalSeats = 10, AvailableSeats = 10 };
         
         _eventServiceMock.Setup(s => s.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(eventItem);
@@ -163,7 +163,7 @@ public class BookingServiceTests
     {
         // Arrange
         var eventId = Guid.NewGuid();
-        var eventItem = new Event { Id = eventId, Title = "Test Event", Description = "Description", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow.AddDays(1) };
+        var eventItem = new Event { Id = eventId, Title = "Test Event", Description = "Description", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow.AddDays(1), TotalSeats = 10, AvailableSeats = 10 };
         
         _eventServiceMock.Setup(s => s.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(eventItem);
