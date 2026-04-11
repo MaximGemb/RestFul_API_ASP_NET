@@ -76,5 +76,5 @@ public class BookingProcessingBackgroundService : BackgroundService
     /// Имитирует долгую обработку.
     /// </summary>
     protected virtual Task DelayProcessingAsync(CancellationToken stoppingToken) => 
-        Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+        Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
 }
