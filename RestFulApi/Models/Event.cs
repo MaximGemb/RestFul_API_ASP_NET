@@ -30,13 +30,13 @@ public class Event : IValidatableObject
     /// Дата и время начала события.
     /// </summary>
     [Required(ErrorMessage = $"Поле {nameof(StartAt)} обязательно для заполнения.")]
-    public DateTime StartAt { get; set; }
+    public DateTime? StartAt { get; set; }
 
     /// <summary>
     /// Дата и время завершения события.
     /// </summary>
     [Required(ErrorMessage = $"Поле {nameof(EndAt)} обязательно для заполнения.")]
-    public DateTime EndAt { get; set; }
+    public DateTime? EndAt { get; set; }
 
     /// <summary>
     /// Выполняет пользовательскую валидацию дат события.

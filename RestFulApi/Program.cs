@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using RestFulApi.Interfaces;
 using RestFulApi.Middleware;
 using RestFulApi.Services;
@@ -7,10 +8,19 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
-// Регистрация сервиса событий как Singleton (в памяти для всех запросов)
+// Регистрация сервисов как Singleton (в памяти для всех запросов)
 builder.Services.AddSingleton<IEventService, EventService>();
+builder.Services.AddSingleton<IBookingService, BookingService>();
+builder.Services.AddSingleton<IBookingTaskQueue, InMemoryBookingTaskQueue>();
+
+// Регистрация фонового сервиса для обработки бронирований
+builder.Services.AddHostedService<BookingProcessingBackgroundService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

@@ -12,8 +12,8 @@ namespace RestFulApi.DTOs;
 public record EventDto(
     string Title,
     string? Description,
-    DateTime StartAt,
-    DateTime EndAt
+    DateTime? StartAt,
+    DateTime? EndAt
 ) : IValidatableObject
 {
     /// <summary>

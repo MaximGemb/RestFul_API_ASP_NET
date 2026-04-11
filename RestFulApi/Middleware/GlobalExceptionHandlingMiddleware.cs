@@ -29,16 +29,31 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
 
     private async Task HandleExceptionAsync(HttpContext httpContext, Exception ex)
     {
-        logger.LogError(
-            ex,
-            "Unhandled exception. Method={Method}, Path={Path}",
-            httpContext.Request.Method,
-            httpContext.Request.Path);
+        if (ex is OperationCanceledException)
+        {
+            logger.LogInformation("Request was cancelled.");
+        }
+        else
+        {
+            logger.LogError(
+                ex,
+                "Unhandled exception. Method={Method}, Path={Path}",
+                httpContext.Request.Method,
+                httpContext.Request.Path);
+        }
 
         if (httpContext.Response.HasStarted)
             return;
 
         var statusCode = MapStatusCode(ex);
+
+        // Для отмененных запросов не возвращаем ProblemDetails, просто ставим статус-код
+        if (ex is OperationCanceledException)
+        {
+            httpContext.Response.StatusCode = statusCode;
+            return;
+        }
+
         var detailMessage = statusCode is StatusCodes.Status500InternalServerError
             ? "An unexpected error occurred."
             : ex.Message;
@@ -58,6 +73,7 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
     private static int MapStatusCode(Exception ex)
         => ex switch
         {
+            OperationCanceledException => StatusCodes.Status499ClientClosedRequest,
             ValidationException => StatusCodes.Status400BadRequest,
             NotFoundException => StatusCodes.Status404NotFound,
             _ => StatusCodes.Status500InternalServerError

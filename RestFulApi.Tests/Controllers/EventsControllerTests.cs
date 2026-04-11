@@ -35,13 +35,14 @@ public class EventsControllerTests
         };
 
         serviceMock
-            .Setup(service => service.GetAll(null, null, null, 1, 10))
+            .Setup(service => service.GetAllAsync(null, null, null, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
-        var controller = new EventsController(serviceMock.Object);
+        var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
+        var cts = new CancellationTokenSource();
 
         // Act
-        var actionResult = await controller.GetEvents();
+        var actionResult = await controller.GetEvents(ct: cts.Token);
 
         // Assert
         var okResult = actionResult.Result.Should().BeOfType<OkObjectResult>().Subject;
@@ -66,13 +67,14 @@ public class EventsControllerTests
         };
 
         serviceMock
-            .Setup(service => service.GetById(eventId))
+            .Setup(service => service.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
-        var controller = new EventsController(serviceMock.Object);
+        var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
+        var cts = new CancellationTokenSource();
 
         // Act
-        var actionResult = await controller.GetEvent(eventId);
+        var actionResult = await controller.GetEvent(eventId, cts.Token);
 
         // Assert
         var okResult = actionResult.Result.Should().BeOfType<OkObjectResult>().Subject;
@@ -89,20 +91,21 @@ public class EventsControllerTests
         var created = new Event
         {
             Id = Guid.NewGuid(),
-            Title = dto.Title!,
+            Title = dto.Title,
             Description = dto.Description,
             StartAt = dto.StartAt,
             EndAt = dto.EndAt
         };
 
         serviceMock
-            .Setup(service => service.Create(dto))
+            .Setup(service => service.CreateAsync(dto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(created);
 
-        var controller = new EventsController(serviceMock.Object);
+        var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
+        var cts = new CancellationTokenSource();
 
         // Act
-        var actionResult = await controller.CreateEvent(dto);
+        var actionResult = await controller.CreateEvent(dto, cts.Token);
 
         // Assert
         var createdResult = actionResult.Result.Should().BeOfType<CreatedAtActionResult>().Subject;
@@ -121,20 +124,21 @@ public class EventsControllerTests
         var dto = new EventDto("Updated", "Description", new DateTime(2026, 04, 01), new DateTime(2026, 04, 02));
 
         serviceMock
-            .Setup(service => service.Update(eventId, dto))
+            .Setup(service => service.UpdateAsync(eventId, dto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Event
             {
                 Id = eventId,
-                Title = dto.Title!,
+                Title = dto.Title,
                 Description = dto.Description,
                 StartAt = dto.StartAt,
                 EndAt = dto.EndAt
             });
 
-        var controller = new EventsController(serviceMock.Object);
+        var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
+        var cts = new CancellationTokenSource();
 
         // Act
-        var result = await controller.UpdateEvent(eventId, dto);
+        var result = await controller.UpdateEvent(eventId, dto, cts.Token);
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
@@ -148,15 +152,50 @@ public class EventsControllerTests
         var eventId = Guid.NewGuid();
 
         serviceMock
-            .Setup(service => service.Delete(eventId))
+            .Setup(service => service.DeleteAsync(eventId, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var controller = new EventsController(serviceMock.Object);
+        var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
+        var cts = new CancellationTokenSource();
 
         // Act
-        var result = await controller.DeleteEvent(eventId);
+        var result = await controller.DeleteEvent(eventId, cts.Token);
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
+    }
+
+    [Fact]
+    public async Task BookEvent_ShouldReturnAcceptedAtAction_WhenBookingIsCreated()
+    {
+        // Arrange
+        var eventId = Guid.NewGuid();
+        var bookingId = Guid.NewGuid();
+        var booking = new Booking
+        {
+            Id = bookingId,
+            EventId = eventId,
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var bookingServiceMock = new Mock<IBookingService>();
+        bookingServiceMock
+            .Setup(service => service.CreateBookingAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(booking);
+
+        var controller = new EventsController(new Mock<IEventService>().Object, bookingServiceMock.Object);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var result = await controller.BookEvent(eventId, cts.Token);
+
+        // Assert
+        var acceptedResult = result.Should().BeOfType<AcceptedAtActionResult>().Subject;
+        acceptedResult.ActionName.Should().Be("GetBooking");
+        acceptedResult.ControllerName.Should().Be("Bookings");
+        acceptedResult.RouteValues!["id"].Should().Be(booking.Id);
+        var value = acceptedResult.Value.Should().BeOfType<Booking>().Subject;
+        value.Id.Should().Be(booking.Id);
     }
 }
