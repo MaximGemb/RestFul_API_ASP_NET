@@ -1,7 +1,7 @@
 namespace RestFulApi.Exceptions;
 
 /// <summary>
-/// Исключение, выбрасываемое когда в событии не осталось доступных мест.
+/// Исключение, выбрасываемое, когда в событии не осталось доступных мест.
 /// </summary>
 public class NoAvailableSeatsException : Exception
 {

@@ -113,6 +113,26 @@ public class BookingServiceTests
     }
 
     [Fact]
+    public async Task UpdateBookingAsync_ShouldThrowNotFoundException_WhenBookingDoesNotExist()
+    {
+        // Arrange
+        var booking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            EventId = Guid.NewGuid(),
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Act
+        var action = () => _bookingService.UpdateBookingAsync(booking, TestContext.Current.CancellationToken);
+
+        // Assert
+        await action.Should().ThrowAsync<NotFoundException>()
+            .Where(ex => ex.Message.Contains($"Бронь с идентификатором {booking.Id} не найдена."));
+    }
+
+    [Fact]
     public async Task CreateBookingAsync_ShouldThrowNotFoundException_WhenEventDoesNotExist()
     {
         // Arrange

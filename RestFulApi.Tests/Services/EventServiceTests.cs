@@ -382,6 +382,49 @@ public class EventServiceTests
             .Contain(result => result.ErrorMessage == "Дата завершения должна быть позже даты начала.");
     }
 
+    [Fact]
+    public void EventDto_ShouldFailValidation_WhenTotalSeatsIsNull()
+    {
+        // Arrange
+        var dto = new EventDto(
+            "No Seats Event",
+            "Description",
+            new DateTime(2027, 04, 10, 10, 0, 0),
+            new DateTime(2027, 04, 10, 12, 0, 0),
+            null);
+        var validationResults = new List<ValidationResult>();
+
+        // Act
+        var isValid = Validator.TryValidateObject(dto, new ValidationContext(dto), validationResults, true);
+
+        // Assert
+        isValid.Should().BeFalse();
+        validationResults.Should().Contain(result =>
+            result.ErrorMessage == "Общее количество мест должно быть больше нуля." &&
+            result.MemberNames.Contains("TotalSeats"));
+    }
+
+    [Fact]
+    public void EventDto_ShouldFailValidation_WhenTotalSeatsIsZero()
+    {
+        // Arrange
+        var dto = CreateEventDto(
+            "Zero Seats Event",
+            new DateTime(2027, 04, 11, 10, 0, 0),
+            new DateTime(2027, 04, 11, 12, 0, 0),
+            0);
+        var validationResults = new List<ValidationResult>();
+
+        // Act
+        var isValid = Validator.TryValidateObject(dto, new ValidationContext(dto), validationResults, true);
+
+        // Assert
+        isValid.Should().BeFalse();
+        validationResults.Should().Contain(result =>
+            result.ErrorMessage == "Общее количество мест должно быть больше нуля." &&
+            result.MemberNames.Contains("TotalSeats"));
+    }
+
     private static EventDto CreateEventDto(string title, DateTime startAt, DateTime endAt, int totalSeats = 1,
         string? description = "Description") =>
         new(title, description, startAt, endAt, totalSeats);

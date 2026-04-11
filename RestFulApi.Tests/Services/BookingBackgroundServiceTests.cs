@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
+using RestFulApi.Exceptions;
 using RestFulApi.Interfaces;
 using RestFulApi.Models;
 using RestFulApi.Services;
@@ -11,6 +12,8 @@ namespace RestFulApi.Tests.Services;
 public class BookingBackgroundServiceTests
 {
     private readonly Mock<IBookingService> _bookingServiceMock;
+    private readonly Mock<IEventService> _eventServiceMock;
+    private readonly Mock<ILogger<BookingBackgroundService>> _loggerMock;
     private readonly TestBookingBackgroundService _backgroundService;
 
     public BookingBackgroundServiceTests()
@@ -19,8 +22,8 @@ public class BookingBackgroundServiceTests
         var serviceScopeFactoryMock = new Mock<IServiceScopeFactory>();
         var serviceScopeMock = new Mock<IServiceScope>();
         _bookingServiceMock = new Mock<IBookingService>();
-        var eventServiceMock = new Mock<IEventService>();
-        var loggerMock = new Mock<ILogger<BookingBackgroundService>>();
+        _eventServiceMock = new Mock<IEventService>();
+        _loggerMock = new Mock<ILogger<BookingBackgroundService>>();
 
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
             .Returns(serviceScopeFactoryMock.Object);
@@ -36,8 +39,8 @@ public class BookingBackgroundServiceTests
 
         _backgroundService = new TestBookingBackgroundService(
             _bookingServiceMock.Object,
-            eventServiceMock.Object,
-            loggerMock.Object);
+            _eventServiceMock.Object,
+            _loggerMock.Object);
     }
 
     [Fact]
@@ -89,18 +92,19 @@ public class BookingBackgroundServiceTests
         _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Booking> { pendingBooking });
 
-        _backgroundService.DelayAction = async token => { await Task.Delay(1000, token); };
-
-        // We can't easily test the UpdateBookingAsync because of the 1-minute delay, 
-        // but we can ensure it tries to delay and handles cancellation.
-        cts.CancelAfter(50); // Cancel shortly after starting
+        // DelayAction не переопределяется — используется дефолтное значение (1 минута),
+        // отмена после 50 мс прерывает задержку до вызова GetByIdAsync / UpdateBookingAsync.
+        cts.CancelAfter(50);
 
         // Act
-        await _backgroundService.ExposeExecuteAsync(cts.Token);
+        var exception = await Record.ExceptionAsync(() => _backgroundService.ExposeExecuteAsync(cts.Token));
 
         // Assert
-        _bookingServiceMock.Verify(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
-        // Ensure it doesn't get to UpdateBookingAsync because of cancellation during Task.Delay
+        Assert.True(exception is null or OperationCanceledException or TaskCanceledException);
+        _bookingServiceMock.Verify(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        // Отмена произошла внутри DelayProcessingAsync — до GetByIdAsync и UpdateBookingAsync
+        _eventServiceMock.Verify(s => s.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
         _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -169,6 +173,90 @@ public class BookingBackgroundServiceTests
         // Assert
         // Проверяем, что сервис не «умер» после первой ошибки и вызвал метод второй раз
         _bookingServiceMock.Verify(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ShouldRejectBookingAndUpdate_WhenEventNotFoundDuringProcessing()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        var pendingBooking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            EventId = Guid.NewGuid(),
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Booking> { pendingBooking });
+
+        _eventServiceMock.Setup(s => s.GetByIdAsync(pendingBooking.EventId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new NotFoundException(pendingBooking.EventId, "Событие не найдено."));
+
+        _bookingServiceMock.Setup(s => s.UpdateBookingAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(() => cts.Cancel());
+
+        _backgroundService.DelayAction = _ => Task.CompletedTask;
+
+        // Act
+        _ = await Record.ExceptionAsync(() => _backgroundService.ExposeExecuteAsync(cts.Token));
+
+        // Assert
+        _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.Is<Booking>(b =>
+            b.Id == pendingBooking.Id &&
+            b.Status == BookingStatus.Rejected &&
+            b.ProcessedAt != null), It.IsAny<CancellationToken>()), Times.Once);
+
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Событие") && v.ToString()!.Contains("не найдено")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ShouldRejectBookingAndUpdate_WhenUnexpectedExceptionDuringProcessing()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        var pendingBooking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            EventId = Guid.NewGuid(),
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Booking> { pendingBooking });
+
+        _eventServiceMock.Setup(s => s.GetByIdAsync(pendingBooking.EventId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Unexpected error"));
+
+        _bookingServiceMock.Setup(s => s.UpdateBookingAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(() => cts.Cancel());
+
+        _backgroundService.DelayAction = _ => Task.CompletedTask;
+
+        // Act
+        _ = await Record.ExceptionAsync(() => _backgroundService.ExposeExecuteAsync(cts.Token));
+
+        // Assert
+        _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.Is<Booking>(b =>
+            b.Id == pendingBooking.Id &&
+            b.Status == BookingStatus.Rejected &&
+            b.ProcessedAt != null), It.IsAny<CancellationToken>()), Times.Once);
+
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Ошибка брони")),
+            It.IsAny<InvalidOperationException>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
 

@@ -1,4 +1,3 @@
-using RestFulApi.DTOs;
 using RestFulApi.Exceptions;
 using RestFulApi.Interfaces;
 using RestFulApi.Models;

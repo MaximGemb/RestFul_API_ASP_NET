@@ -183,4 +183,94 @@ public class GlobalExceptionHandlingMiddlewareTests
 
         Task Next(HttpContext _) => throw exception;
     }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldHandleNoAvailableSeatsException_AndReturn409()
+    {
+        // Arrange
+        const string expectedMessage = "No seats left";
+        var exception = new NoAvailableSeatsException(Guid.NewGuid(), expectedMessage);
+
+        var middleware = new GlobalExceptionHandlingMiddleware(Next, _loggerMock.Object);
+
+        // Act
+        await middleware.InvokeAsync(_httpContext);
+
+        // Assert
+        Assert.Equal(StatusCodes.Status409Conflict, _httpContext.Response.StatusCode);
+
+        _httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(_httpContext.Response.Body).ReadToEndAsync(TestContext.Current.CancellationToken);
+        var problemDetails = JsonSerializer.Deserialize<ProblemDetails>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.NotNull(problemDetails);
+        Assert.Equal(StatusCodes.Status409Conflict, problemDetails.Status);
+        Assert.Equal(expectedMessage, problemDetails.Detail);
+        return;
+
+        Task Next(HttpContext _) => throw exception;
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldLogInformation_WhenOperationCanceledExceptionThrown()
+    {
+        // Arrange
+        var exception = new OperationCanceledException("Task cancelled");
+        var middleware = new GlobalExceptionHandlingMiddleware(Next, _loggerMock.Object);
+
+        // Act
+        await middleware.InvokeAsync(_httpContext);
+
+        // Assert
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Request was cancelled.")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+        return;
+
+        Task Next(HttpContext _) => throw exception;
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldLogErrorWithRequestContext_WhenNonCanceledExceptionThrown()
+    {
+        // Arrange
+        var exception = new Exception("boom");
+        _httpContext.Request.Method = "POST";
+        _httpContext.Request.Path = "/api/bookings";
+
+        var middleware = new GlobalExceptionHandlingMiddleware(Next, _loggerMock.Object);
+
+        // Act
+        await middleware.InvokeAsync(_httpContext);
+
+        // Assert
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("Unhandled exception") &&
+                    v.ToString()!.Contains("POST") &&
+                    v.ToString()!.Contains("/api/bookings")),
+                It.Is<Exception>(e => ReferenceEquals(e, exception)),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+        return;
+
+        Task Next(HttpContext _) => throw exception;
+    }
 }
