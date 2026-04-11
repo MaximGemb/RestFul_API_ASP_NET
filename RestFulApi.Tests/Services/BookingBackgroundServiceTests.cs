@@ -8,19 +8,19 @@ using Xunit;
 
 namespace RestFulApi.Tests.Services;
 
-public class BookingProcessingBackgroundServiceTests
+public class BookingBackgroundServiceTests
 {
     private readonly Mock<IBookingService> _bookingServiceMock;
-    private readonly TestBookingProcessingBackgroundService _backgroundService;
+    private readonly TestBookingBackgroundService _backgroundService;
 
-    public BookingProcessingBackgroundServiceTests()
+    public BookingBackgroundServiceTests()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
         var serviceScopeFactoryMock = new Mock<IServiceScopeFactory>();
         var serviceScopeMock = new Mock<IServiceScope>();
         _bookingServiceMock = new Mock<IBookingService>();
         var eventServiceMock = new Mock<IEventService>();
-        var loggerMock = new Mock<ILogger<BookingProcessingBackgroundService>>();
+        var loggerMock = new Mock<ILogger<BookingBackgroundService>>();
 
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
             .Returns(serviceScopeFactoryMock.Object);
@@ -34,7 +34,7 @@ public class BookingProcessingBackgroundServiceTests
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IBookingService)))
             .Returns(_bookingServiceMock.Object);
 
-        _backgroundService = new TestBookingProcessingBackgroundService(
+        _backgroundService = new TestBookingBackgroundService(
             _bookingServiceMock.Object,
             eventServiceMock.Object,
             loggerMock.Object);
@@ -175,11 +175,11 @@ public class BookingProcessingBackgroundServiceTests
     /// <summary>
     /// Вспомогательный класс для тестирования защищенного метода ExecuteAsync.
     /// </summary>
-    private class TestBookingProcessingBackgroundService(
+    private class TestBookingBackgroundService(
         IBookingService bookingService,
         IEventService eventService,
-        ILogger<BookingProcessingBackgroundService> logger)
-        : BookingProcessingBackgroundService(bookingService, eventService, logger)
+        ILogger<BookingBackgroundService> logger)
+        : BookingBackgroundService(bookingService, eventService, logger)
     {
         public Func<CancellationToken, Task> DelayAction { get; set; } =
             token => Task.Delay(TimeSpan.FromMinutes(1), token);

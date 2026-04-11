@@ -8,7 +8,7 @@ namespace RestFulApi.Services;
 /// <summary>
 /// Фоновый сервис, отвечающий за обработку бронирований со статусом Pending.
 /// </summary>
-public class BookingProcessingBackgroundService : BackgroundService
+public class BookingBackgroundService : BackgroundService
 {
     /// <summary>
     /// Предоставляет доступ к функциональности бронирования, включая создание,
@@ -30,7 +30,7 @@ public class BookingProcessingBackgroundService : BackgroundService
     /// Логгер, используемый для записи информации, предупреждений и ошибок, возникающих при работе
     /// фонового сервиса обработки бронирований.
     /// </summary>
-    private readonly ILogger<BookingProcessingBackgroundService> _logger;
+    private readonly ILogger<BookingBackgroundService> _logger;
 
     /// <summary>
     /// Семафор, используемый для управления конкурентным доступом к процессу обработки бронирований,
@@ -45,10 +45,10 @@ public class BookingProcessingBackgroundService : BackgroundService
     /// <param name="eventService">Сервис для работы с событиями.</param>
     /// <param name="logger">Логгер для записи информации о работе сервиса.</param>
     // ReSharper disable once MemberCanBeProtected.Global
-    public BookingProcessingBackgroundService(
+    public BookingBackgroundService(
         IBookingService bookingService,
         IEventService eventService,
-        ILogger<BookingProcessingBackgroundService> logger)
+        ILogger<BookingBackgroundService> logger)
     {
         _bookingService = bookingService;
         _eventService = eventService;
