@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using RestFulApi.Exceptions;
 
 namespace RestFulApi.Models;
 
@@ -53,13 +54,12 @@ public class Event : IValidatableObject
     /// Пытается зарезервировать указанное количество мест.
     /// </summary>
     /// <param name="count">Количество мест для резервирования (по умолчанию 1).</param>
-    public bool TryReserveSeats(int count = 1)
+    public void TryReserveSeats(int count = 1)
     {
         if (AvailableSeats < count)
-            return false;
+            throw new NoAvailableSeatsException();
 
         AvailableSeats -= count;
-        return true;
     }
 
     /// <summary>

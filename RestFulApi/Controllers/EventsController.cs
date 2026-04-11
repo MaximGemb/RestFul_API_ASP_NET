@@ -119,9 +119,11 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// <returns>Информация о созданной брони.</returns>
     /// <response code="202">Запрос на бронирование принят в обработку.</response>
     /// <response code="404">Событие не найдено.</response>
+    /// <response code="409">Свободные места для события закончились.</response>
     [HttpPost("{id:guid}/book")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> BookEvent(Guid id, CancellationToken ct)
     {
         var booking = await bookingService.CreateBookingAsync(id, ct);
