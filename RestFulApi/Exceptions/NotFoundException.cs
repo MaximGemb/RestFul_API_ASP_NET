@@ -1,5 +1,3 @@
-using RestFulApi.Models;
-
 namespace RestFulApi.Exceptions;
 
 /// <summary>

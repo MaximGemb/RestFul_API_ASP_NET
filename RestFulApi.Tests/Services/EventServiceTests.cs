@@ -35,8 +35,10 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
         var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Alpha Meetup", new DateTime(2026, 04, 01), new DateTime(2026, 04, 02)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Beta Meetup", new DateTime(2026, 04, 03), new DateTime(2026, 04, 04)), cts.Token);
+        await service.CreateAsync(
+            CreateEventDto("Alpha Meetup", new DateTime(2026, 04, 01), new DateTime(2026, 04, 02)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Beta Meetup", new DateTime(2026, 04, 03), new DateTime(2026, 04, 04)),
+            cts.Token);
 
         // Act
         var result = await service.GetAllAsync(ct: cts.Token);
@@ -55,7 +57,8 @@ public class EventServiceTests
         var service = new EventService();
         var cts = new CancellationTokenSource();
         var createdEvent =
-            await service.CreateAsync(CreateEventDto("Music Fest", new DateTime(2026, 05, 01), new DateTime(2026, 05, 02)), cts.Token);
+            await service.CreateAsync(
+                CreateEventDto("Music Fest", new DateTime(2026, 05, 01), new DateTime(2026, 05, 02)), cts.Token);
 
         // Act
         var result = await service.GetByIdAsync(createdEvent.Id, cts.Token);
@@ -72,8 +75,9 @@ public class EventServiceTests
         var service = new EventService();
         var cts = new CancellationTokenSource();
         var createdEvent =
-            await service.CreateAsync(CreateEventDto("Old Title", new DateTime(2026, 06, 01), new DateTime(2026, 06, 02)), cts.Token);
-        var updatedDto = CreateEventDto("New Title", new DateTime(2026, 06, 03), new DateTime(2026, 06, 04),
+            await service.CreateAsync(
+                CreateEventDto("Old Title", new DateTime(2026, 06, 01), new DateTime(2026, 06, 02)), cts.Token);
+        var updatedDto = CreateEventDto("New Title", new DateTime(2026, 06, 03), new DateTime(2026, 06, 04), 1,
             "Updated description");
 
         // Act
@@ -94,7 +98,8 @@ public class EventServiceTests
         var service = new EventService();
         var cts = new CancellationTokenSource();
         var createdEvent =
-            await service.CreateAsync(CreateEventDto("Delete Me", new DateTime(2026, 07, 01), new DateTime(2026, 07, 02)), cts.Token);
+            await service.CreateAsync(
+                CreateEventDto("Delete Me", new DateTime(2026, 07, 01), new DateTime(2026, 07, 02)), cts.Token);
 
         // Act
         await service.DeleteAsync(createdEvent.Id, cts.Token);
@@ -112,7 +117,8 @@ public class EventServiceTests
         var cts = new CancellationTokenSource();
         await service.CreateAsync(
             CreateEventDto("DotNet Conference", new DateTime(2026, 03, 01), new DateTime(2026, 03, 02)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Java Summit", new DateTime(2026, 03, 03), new DateTime(2026, 03, 04)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Java Summit", new DateTime(2026, 03, 03), new DateTime(2026, 03, 04)),
+            cts.Token);
 
         // Act
         var result = await service.GetAllAsync(title: "dotnet", ct: cts.Token);
@@ -129,12 +135,16 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
         var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Event A", new DateTime(2026, 01, 01), new DateTime(2026, 01, 02)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Event B", new DateTime(2026, 01, 10), new DateTime(2026, 01, 11)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Event C", new DateTime(2026, 01, 20), new DateTime(2026, 01, 21)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Event A", new DateTime(2026, 01, 01), new DateTime(2026, 01, 02)),
+            cts.Token);
+        await service.CreateAsync(CreateEventDto("Event B", new DateTime(2026, 01, 10), new DateTime(2026, 01, 11)),
+            cts.Token);
+        await service.CreateAsync(CreateEventDto("Event C", new DateTime(2026, 01, 20), new DateTime(2026, 01, 21)),
+            cts.Token);
 
         // Act
-        var result = await service.GetAllAsync(from: new DateTime(2026, 01, 05), to: new DateTime(2026, 01, 15), ct: cts.Token);
+        var result = await service.GetAllAsync(from: new DateTime(2026, 01, 05), to: new DateTime(2026, 01, 15),
+            ct: cts.Token);
 
         // Assert
         result.Items.Should().ContainSingle();
@@ -147,9 +157,12 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
         var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Event 1", new DateTime(2026, 01, 01), new DateTime(2026, 01, 02)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Event 2", new DateTime(2026, 01, 03), new DateTime(2026, 01, 04)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Event 3", new DateTime(2026, 01, 05), new DateTime(2026, 01, 06)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Event 1", new DateTime(2026, 01, 01), new DateTime(2026, 01, 02)),
+            cts.Token);
+        await service.CreateAsync(CreateEventDto("Event 2", new DateTime(2026, 01, 03), new DateTime(2026, 01, 04)),
+            cts.Token);
+        await service.CreateAsync(CreateEventDto("Event 3", new DateTime(2026, 01, 05), new DateTime(2026, 01, 06)),
+            cts.Token);
 
         // Act
         var result = await service.GetAllAsync(page: 2, pageSize: 1, ct: cts.Token);
@@ -168,10 +181,12 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
         var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Backend Meetup", new DateTime(2026, 08, 01), new DateTime(2026, 08, 02)), cts.Token);
+        await service.CreateAsync(
+            CreateEventDto("Backend Meetup", new DateTime(2026, 08, 01), new DateTime(2026, 08, 02)), cts.Token);
         await service.CreateAsync(
             CreateEventDto("Backend Deep Dive", new DateTime(2026, 08, 03), new DateTime(2026, 08, 04)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Frontend Meetup", new DateTime(2026, 08, 03), new DateTime(2026, 08, 04)), cts.Token);
+        await service.CreateAsync(
+            CreateEventDto("Frontend Meetup", new DateTime(2026, 08, 03), new DateTime(2026, 08, 04)), cts.Token);
 
         // Act
         var result = await service.GetAllAsync(
@@ -225,8 +240,10 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
         var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Alpha", new DateTime(2026, 12, 01), new DateTime(2026, 12, 02)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Beta", new DateTime(2026, 12, 03), new DateTime(2026, 12, 04)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Alpha", new DateTime(2026, 12, 01), new DateTime(2026, 12, 02)),
+            cts.Token);
+        await service.CreateAsync(CreateEventDto("Beta", new DateTime(2026, 12, 03), new DateTime(2026, 12, 04)),
+            cts.Token);
 
         // Act
         var result = await service.GetAllAsync(title: string.Empty, ct: cts.Token);
@@ -242,8 +259,10 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
         var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Alpha", new DateTime(2026, 12, 05), new DateTime(2026, 12, 06)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Beta", new DateTime(2026, 12, 07), new DateTime(2026, 12, 08)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Alpha", new DateTime(2026, 12, 05), new DateTime(2026, 12, 06)),
+            cts.Token);
+        await service.CreateAsync(CreateEventDto("Beta", new DateTime(2026, 12, 07), new DateTime(2026, 12, 08)),
+            cts.Token);
 
         // Act
         var result = await service.GetAllAsync(title: "   ", ct: cts.Token);
@@ -260,7 +279,8 @@ public class EventServiceTests
         var service = new EventService();
         var cts = new CancellationTokenSource();
         var boundaryStart = new DateTime(2027, 01, 10, 9, 0, 0);
-        await service.CreateAsync(CreateEventDto("Boundary Start", boundaryStart, new DateTime(2027, 01, 10, 12, 0, 0)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Boundary Start", boundaryStart, new DateTime(2027, 01, 10, 12, 0, 0)),
+            cts.Token);
         await service.CreateAsync(CreateEventDto("Earlier Event", new DateTime(2027, 01, 09, 9, 0, 0),
             new DateTime(2027, 01, 09, 12, 0, 0)), cts.Token);
 
@@ -278,7 +298,8 @@ public class EventServiceTests
         var service = new EventService();
         var cts = new CancellationTokenSource();
         var boundaryEnd = new DateTime(2027, 01, 15, 18, 0, 0);
-        await service.CreateAsync(CreateEventDto("Boundary End", new DateTime(2027, 01, 15, 9, 0, 0), boundaryEnd), cts.Token);
+        await service.CreateAsync(CreateEventDto("Boundary End", new DateTime(2027, 01, 15, 9, 0, 0), boundaryEnd),
+            cts.Token);
         await service.CreateAsync(CreateEventDto("Later Event", new DateTime(2027, 01, 16, 9, 0, 0),
             new DateTime(2027, 01, 16, 18, 0, 0)), cts.Token);
 
@@ -295,7 +316,8 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
         var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Only Event", new DateTime(2027, 02, 01), new DateTime(2027, 02, 02)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Only Event", new DateTime(2027, 02, 01), new DateTime(2027, 02, 02)),
+            cts.Token);
 
         // Act
         var result = await service.GetAllAsync(page: 3, pageSize: 1, ct: cts.Token);
@@ -313,8 +335,10 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
         var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Event A", new DateTime(2027, 03, 01), new DateTime(2027, 03, 02)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Event B", new DateTime(2027, 03, 03), new DateTime(2027, 03, 04)), cts.Token);
+        await service.CreateAsync(CreateEventDto("Event A", new DateTime(2027, 03, 01), new DateTime(2027, 03, 02)),
+            cts.Token);
+        await service.CreateAsync(CreateEventDto("Event B", new DateTime(2027, 03, 03), new DateTime(2027, 03, 04)),
+            cts.Token);
 
         // Act
         var result = await service.GetAllAsync(page: 1, pageSize: 2, ct: cts.Token);
@@ -340,7 +364,7 @@ public class EventServiceTests
         validationResults.Should()
             .Contain(result => result.ErrorMessage == "Дата завершения должна быть позже даты начала.");
     }
-    
+
     [Fact]
     public void EventDto_ShouldFailValidation_WhenStartAtEqualsEndAt()
     {
@@ -358,7 +382,7 @@ public class EventServiceTests
             .Contain(result => result.ErrorMessage == "Дата завершения должна быть позже даты начала.");
     }
 
-    private static EventDto CreateEventDto(string title, DateTime startAt, DateTime endAt,
+    private static EventDto CreateEventDto(string title, DateTime startAt, DateTime endAt, int totalSeats = 1,
         string? description = "Description") =>
-        new(title, description, startAt, endAt);
+        new(title, description, startAt, endAt, totalSeats);
 }
