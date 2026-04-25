@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
+using RestFulApi.Exceptions;
 using RestFulApi.Interfaces;
 using RestFulApi.Models;
 using RestFulApi.Services;
@@ -8,18 +9,21 @@ using Xunit;
 
 namespace RestFulApi.Tests.Services;
 
-public class BookingProcessingBackgroundServiceTests
+public class BookingBackgroundServiceTests
 {
     private readonly Mock<IBookingService> _bookingServiceMock;
-    private readonly TestBookingProcessingBackgroundService _backgroundService;
+    private readonly Mock<IEventService> _eventServiceMock;
+    private readonly Mock<ILogger<BookingBackgroundService>> _loggerMock;
+    private readonly TestBookingBackgroundService _backgroundService;
 
-    public BookingProcessingBackgroundServiceTests()
+    public BookingBackgroundServiceTests()
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
         var serviceScopeFactoryMock = new Mock<IServiceScopeFactory>();
         var serviceScopeMock = new Mock<IServiceScope>();
         _bookingServiceMock = new Mock<IBookingService>();
-        var loggerMock = new Mock<ILogger<BookingProcessingBackgroundService>>();
+        _eventServiceMock = new Mock<IEventService>();
+        _loggerMock = new Mock<ILogger<BookingBackgroundService>>();
 
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
             .Returns(serviceScopeFactoryMock.Object);
@@ -33,9 +37,10 @@ public class BookingProcessingBackgroundServiceTests
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IBookingService)))
             .Returns(_bookingServiceMock.Object);
 
-        _backgroundService = new TestBookingProcessingBackgroundService(
+        _backgroundService = new TestBookingBackgroundService(
             _bookingServiceMock.Object,
-            loggerMock.Object);
+            _eventServiceMock.Object,
+            _loggerMock.Object);
     }
 
     [Fact]
@@ -58,7 +63,7 @@ public class BookingProcessingBackgroundServiceTests
     {
         // Arrange
         var cts = new CancellationTokenSource();
-    
+
         _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Booking>())
             .Callback(() => cts.Cancel()); // Отменяем токен сразу после первого вызова
@@ -70,9 +75,10 @@ public class BookingProcessingBackgroundServiceTests
         // Assert
         // Проверяем, что если исключение и было, то это именно отмена (или вообще без ошибок)
         Assert.True(exception is null or OperationCanceledException or TaskCanceledException);
-    
+
         _bookingServiceMock.Verify(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()), Times.Once);
-        _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()), Times.Never);
+        _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
 
@@ -82,26 +88,25 @@ public class BookingProcessingBackgroundServiceTests
         // Arrange
         var cts = new CancellationTokenSource();
         var pendingBooking = new Booking { Id = Guid.NewGuid(), Status = BookingStatus.Pending };
-        
+
         _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Booking> { pendingBooking });
 
-        _backgroundService.DelayAction = async token => 
-        {
-            await Task.Delay(1000, token);
-        };
-
-        // We can't easily test the UpdateBookingAsync because of the 1-minute delay, 
-        // but we can ensure it tries to delay and handles cancellation.
-        cts.CancelAfter(50); // Cancel shortly after starting
+        // DelayAction не переопределяется — используется дефолтное значение (1 минута),
+        // отмена после 50 мс прерывает задержку до вызова GetByIdAsync / UpdateBookingAsync.
+        cts.CancelAfter(50);
 
         // Act
-        await _backgroundService.ExposeExecuteAsync(cts.Token);
+        var exception = await Record.ExceptionAsync(() => _backgroundService.ExposeExecuteAsync(cts.Token));
 
         // Assert
-        _bookingServiceMock.Verify(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
-        // Ensure it doesn't get to UpdateBookingAsync because of cancellation during Task.Delay
-        _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.True(exception is null or OperationCanceledException or TaskCanceledException);
+        _bookingServiceMock.Verify(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        // Отмена произошла внутри DelayProcessingAsync — до GetByIdAsync и UpdateBookingAsync
+        _eventServiceMock.Verify(s => s.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -110,7 +115,7 @@ public class BookingProcessingBackgroundServiceTests
         // Arrange
         var cts = new CancellationTokenSource();
         var pendingBooking = new Booking { Id = Guid.NewGuid(), Status = BookingStatus.Pending, ProcessedAt = null };
-        
+
         _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Booking> { pendingBooking });
 
@@ -126,9 +131,9 @@ public class BookingProcessingBackgroundServiceTests
         // Assert
         Assert.True(exception is null or OperationCanceledException or TaskCanceledException);
 
-        _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.Is<Booking>(b => 
-            b.Id == pendingBooking.Id && 
-            (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Rejected) && 
+        _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.Is<Booking>(b =>
+            b.Id == pendingBooking.Id &&
+            (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Rejected) &&
             b.ProcessedAt != null), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -140,7 +145,7 @@ public class BookingProcessingBackgroundServiceTests
         await cts.CancelAsync(); // Отменяем сразу, чтобы тест не шел 1 минуту
 
         // Act & Assert
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => 
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             _backgroundService.ExposeBaseDelayProcessingAsync(cts.Token));
     }
 
@@ -152,11 +157,11 @@ public class BookingProcessingBackgroundServiceTests
         var callCount = 0;
 
         _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => 
+            .ReturnsAsync(() =>
             {
                 callCount++;
                 if (callCount is 1) throw new Exception("Test exception");
-            
+
                 cts.Cancel(); // Отменяем, чтобы выйти из цикла на второй итерации
                 return new List<Booking>();
             });
@@ -170,25 +175,110 @@ public class BookingProcessingBackgroundServiceTests
         _bookingServiceMock.Verify(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
+    [Fact]
+    public async Task ExecuteAsync_ShouldRejectBookingAndUpdate_WhenEventNotFoundDuringProcessing()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        var pendingBooking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            EventId = Guid.NewGuid(),
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Booking> { pendingBooking });
+
+        _eventServiceMock.Setup(s => s.GetByIdAsync(pendingBooking.EventId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new NotFoundException(pendingBooking.EventId, "Событие не найдено."));
+
+        _bookingServiceMock.Setup(s => s.UpdateBookingAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(() => cts.Cancel());
+
+        _backgroundService.DelayAction = _ => Task.CompletedTask;
+
+        // Act
+        _ = await Record.ExceptionAsync(() => _backgroundService.ExposeExecuteAsync(cts.Token));
+
+        // Assert
+        _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.Is<Booking>(b =>
+            b.Id == pendingBooking.Id &&
+            b.Status == BookingStatus.Rejected &&
+            b.ProcessedAt != null), It.IsAny<CancellationToken>()), Times.Once);
+
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Событие") && v.ToString()!.Contains("не найдено")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ShouldRejectBookingAndUpdate_WhenUnexpectedExceptionDuringProcessing()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        var pendingBooking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            EventId = Guid.NewGuid(),
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _bookingServiceMock.Setup(s => s.GetPendingBookingsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Booking> { pendingBooking });
+
+        _eventServiceMock.Setup(s => s.GetByIdAsync(pendingBooking.EventId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Unexpected error"));
+
+        _bookingServiceMock.Setup(s => s.UpdateBookingAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(() => cts.Cancel());
+
+        _backgroundService.DelayAction = _ => Task.CompletedTask;
+
+        // Act
+        _ = await Record.ExceptionAsync(() => _backgroundService.ExposeExecuteAsync(cts.Token));
+
+        // Assert
+        _bookingServiceMock.Verify(s => s.UpdateBookingAsync(It.Is<Booking>(b =>
+            b.Id == pendingBooking.Id &&
+            b.Status == BookingStatus.Rejected &&
+            b.ProcessedAt != null), It.IsAny<CancellationToken>()), Times.Once);
+
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Ошибка брони")),
+            It.IsAny<InvalidOperationException>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
 
     /// <summary>
     /// Вспомогательный класс для тестирования защищенного метода ExecuteAsync.
     /// </summary>
-    private class TestBookingProcessingBackgroundService(
+    private class TestBookingBackgroundService(
         IBookingService bookingService,
-        ILogger<BookingProcessingBackgroundService> logger)
-        : BookingProcessingBackgroundService(bookingService, logger)
+        IEventService eventService,
+        ILogger<BookingBackgroundService> logger)
+        : BookingBackgroundService(bookingService, eventService, logger)
     {
-        public Func<CancellationToken, Task> DelayAction { get; set; } = 
+        public Func<CancellationToken, Task> DelayAction { get; set; } =
             token => Task.Delay(TimeSpan.FromMinutes(1), token);
 
-        public Task ExposeExecuteAsync(CancellationToken stoppingToken) => 
+        public Task ExposeExecuteAsync(CancellationToken stoppingToken) =>
             ExecuteAsync(stoppingToken);
 
-        public Task ExposeBaseDelayProcessingAsync(CancellationToken stoppingToken) => 
+        public Task ExposeBaseDelayProcessingAsync(CancellationToken stoppingToken) =>
             base.DelayProcessingAsync(stoppingToken);
 
-        protected override Task DelayProcessingAsync(CancellationToken stoppingToken) => 
+        protected override Task DelayProcessingAsync(CancellationToken stoppingToken) =>
             DelayAction(stoppingToken);
     }
 }

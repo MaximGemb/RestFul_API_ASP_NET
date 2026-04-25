@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using RestFulApi.Exceptions;
 using RestFulApi.Interfaces;
 using RestFulApi.Models;
@@ -9,17 +10,16 @@ namespace RestFulApi.Services;
 /// </summary>
 public class BookingService : IBookingService
 {
-    private readonly List<Booking> _bookings = [];
+    private readonly ConcurrentDictionary<Guid, Booking> _bookings = new();
+    private readonly Lock _bookingLock = new();
     private readonly IEventService _eventService;
 
     /// <summary>
     /// Инициализирует новый экземпляр класса <see cref="BookingService"/>.
     /// </summary>
     /// <param name="eventService">Сервис для работы с событиями.</param>
-    public BookingService(IEventService eventService)
-    {
+    public BookingService(IEventService eventService) =>
         _eventService = eventService;
-    }
 
     /// <summary>
     /// Создает новую бронь для указанного события.
@@ -32,7 +32,10 @@ public class BookingService : IBookingService
         ct.ThrowIfCancellationRequested();
 
         // Проверяем, существует ли событие
-        _ = await _eventService.GetByIdAsync(eventId, ct);
+        var @event = await _eventService.GetByIdAsync(eventId, ct);
+
+        lock (_bookingLock)
+            @event.TryReserveSeats();
 
         var newBooking = new Booking
         {
@@ -42,7 +45,7 @@ public class BookingService : IBookingService
             CreatedAt = DateTime.UtcNow
         };
 
-        _bookings.Add(newBooking);
+        _bookings.TryAdd(newBooking.Id, newBooking);
         return newBooking;
     }
 
@@ -56,24 +59,23 @@ public class BookingService : IBookingService
     {
         ct.ThrowIfCancellationRequested();
 
-        var booking = _bookings.FirstOrDefault(b => b.Id == bookingId)
-                      ?? throw new NotFoundException(bookingId, $"Бронь с идентификатором {bookingId} не найдена.");
-
-        return Task.FromResult(booking);
+        return _bookings.TryGetValue(bookingId, out var booking)
+            ? Task.FromResult(booking)
+            : throw new NotFoundException(bookingId, $"Бронь с идентификатором {bookingId} не найдена.");
     }
 
     /// <summary>
     /// Получает список бронирований со статусом Pending.
     /// </summary>
-    /// <param name="ct">Токен отмены операции.</param>
+    /// <param name="ct"> Токен отмены операции.</param>
     /// <returns>Список ожидающих обработки бронирований.</returns>
     public Task<IEnumerable<Booking>> GetPendingBookingsAsync(CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var pendingBookings = _bookings.Where(b => b.Status == BookingStatus.Pending).ToList();
+        var pendingBookings = _bookings.Values.Where(b => b.Status == BookingStatus.Pending);
 
-        return Task.FromResult<IEnumerable<Booking>>(pendingBookings);
+        return Task.FromResult(pendingBookings);
     }
 
     /// <summary>
@@ -86,12 +88,10 @@ public class BookingService : IBookingService
     {
         ct.ThrowIfCancellationRequested();
 
-        var existingBooking = _bookings.FirstOrDefault(b => b.Id == booking.Id)
-                              ?? throw new NotFoundException(booking.Id, $"Бронь с идентификатором {booking.Id} не найдена.");
+        if (!_bookings.ContainsKey(booking.Id))
+            throw new NotFoundException(booking.Id, $"Бронь с идентификатором {booking.Id} не найдена.");
 
-        existingBooking.Status = booking.Status;
-        existingBooking.ProcessedAt = booking.ProcessedAt;
-
+        _bookings[booking.Id] = booking;
         return Task.CompletedTask;
     }
 }

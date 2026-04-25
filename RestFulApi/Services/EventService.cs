@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using RestFulApi.DTOs;
 using RestFulApi.Exceptions;
 using RestFulApi.Interfaces;
@@ -10,7 +11,7 @@ namespace RestFulApi.Services;
 /// </summary>
 public class EventService : IEventService
 {
-    private readonly List<Event> _events = [];
+    private readonly ConcurrentDictionary<Guid, Event> _events = [];
 
     /// <summary>
     /// Возвращает список событий с учетом фильтрации и пагинации.
@@ -28,7 +29,7 @@ public class EventService : IEventService
     {
         ct.ThrowIfCancellationRequested();
 
-        var query = _events.AsEnumerable();
+        var query = _events.Values.AsEnumerable();
 
         if (!string.IsNullOrWhiteSpace(title))
             query = query.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
@@ -79,15 +80,13 @@ public class EventService : IEventService
     /// <param name="id">Идентификатор события.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Найденное событие.</returns>
-    // ReSharper disable once HeapView.ClosureAllocation
     public Task<Event> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var ev = _events.FirstOrDefault(e => e.Id == id)
-                 ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
-
-        return Task.FromResult(ev);
+        return _events.TryGetValue(id, out var ev)
+            ? Task.FromResult(ev)
+            : throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
     }
 
     /// <summary>
@@ -106,9 +105,12 @@ public class EventService : IEventService
             Title = item.Title,
             Description = item.Description,
             StartAt = item.StartAt,
-            EndAt = item.EndAt
+            EndAt = item.EndAt,
+            TotalSeats = item.TotalSeats.GetValueOrDefault(),
+            AvailableSeats = item.TotalSeats.GetValueOrDefault()
         };
-        _events.Add(newEvent);
+
+        _events.TryAdd(newEvent.Id, newEvent);
         return Task.FromResult(newEvent);
     }
 
@@ -119,13 +121,12 @@ public class EventService : IEventService
     /// <param name="item">Новые данные события.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Обновленное событие.</returns>
-    // ReSharper disable once HeapView.ClosureAllocation
     public Task<Event> UpdateAsync(Guid id, EventDto item, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var ev = _events.FirstOrDefault(e => e.Id == id)
-                 ?? throw new NotFoundException(id, $"Can't update event with id {id}. Event not found");
+        if (!_events.TryGetValue(id, out var ev))
+            throw new NotFoundException(id, $"Can't update event with id {id}. Event not found");
 
         ev.Title = item.Title;
         ev.Description = item.Description;
@@ -141,15 +142,12 @@ public class EventService : IEventService
     /// <param name="id">Идентификатор удаляемого события.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Задача, представляющая завершение операции удаления.</returns>
-    // ReSharper disable once HeapView.ClosureAllocation
     public Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var ev = _events.FirstOrDefault(e => e.Id == id)
-                 ?? throw new NotFoundException(id, $"Can't delete event with id {id}. Event not found");
-
-        _events.Remove(ev);
-        return Task.CompletedTask;
+        return _events.TryRemove(id, out _)
+            ? Task.CompletedTask
+            : throw new NotFoundException(id, $"Can't delete event with id {id}. Event not found");
     }
 }

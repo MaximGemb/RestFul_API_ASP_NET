@@ -1,6 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using RestFulApi.Models;
-
 namespace RestFulApi.DTOs;
 
 /// <summary>
@@ -13,20 +10,20 @@ public class PaginatedResult<T>
     /// Общее количество элементов, соответствующих критериям поиска, без учета пагинации.
     /// </summary>
 
-    public int TotalCount { get; set; }
+    public int TotalCount { get; init; }
 
     /// <summary>
     /// Коллекция элементов для текущей страницы.
     /// </summary>
-    public List<T> Items { get; set; } = [];
+    public List<T> Items { get; init; } = [];
 
     /// <summary>
     /// Номер текущей страницы (начиная с 1).
     /// </summary>
-    public int CurrentPageNumber { get; set; }
+    public int CurrentPageNumber { get; init; }
 
     /// <summary>
     /// Количество элементов, на текущей странице.
     /// </summary>
-    public int CurrentPageItemsCount { get; set; }
+    public int CurrentPageItemsCount { get; init; }
 }

@@ -1,9 +1,9 @@
 namespace RestFulApi.Exceptions;
 
 /// <summary>
-/// Исключение, выбрасываемое когда запрашиваемый ресурс не найден.
+/// Исключение, выбрасываемое, когда в событии не осталось доступных мест.
 /// </summary>
-public class NotFoundException : Exception
+public class NoAvailableSeatsException : Exception
 {
     /// <summary>
     /// Идентификатор события, связанного с ошибкой.
@@ -13,7 +13,7 @@ public class NotFoundException : Exception
     /// <summary>
     /// Инициализирует новый экземпляр исключения с сообщением по умолчанию.
     /// </summary>
-    public NotFoundException() : base(message: "Unknown event error.")
+    public NoAvailableSeatsException() : base(message: "No available seats for this event")
     {
     }
 
@@ -22,7 +22,7 @@ public class NotFoundException : Exception
     /// </summary>
     /// <param name="id">Идентификатор события, при обработке которого произошла ошибка.</param>
     /// <param name="message">Текст сообщения об ошибке.</param>
-    public NotFoundException(Guid? id, string message) : base(message) => 
+    public NoAvailableSeatsException(Guid? id, string message) : base(message) =>
         Id = id;
 
 
@@ -32,7 +32,7 @@ public class NotFoundException : Exception
     /// <param name="id">Идентификатор события, при обработке которого произошла ошибка.</param>
     /// <param name="message">Текст сообщения об ошибке.</param>
     /// <param name="inner">Внутреннее исключение.</param>
-    public NotFoundException(Guid? id, string message, Exception inner)
+    public NoAvailableSeatsException(Guid? id, string message, Exception inner)
         : base(message, inner) =>
         Id = id;
 }

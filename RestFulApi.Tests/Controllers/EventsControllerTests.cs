@@ -87,7 +87,7 @@ public class EventsControllerTests
     {
         // Arrange
         var serviceMock = new Mock<IEventService>();
-        var dto = new EventDto("Conference", "Description", new DateTime(2026, 03, 01), new DateTime(2026, 03, 02));
+        var dto = new EventDto("Conference", "Description", new DateTime(2026, 03, 01), new DateTime(2026, 03, 02), null);
         var created = new Event
         {
             Id = Guid.NewGuid(),
@@ -121,7 +121,7 @@ public class EventsControllerTests
         // Arrange
         var serviceMock = new Mock<IEventService>();
         var eventId = Guid.NewGuid();
-        var dto = new EventDto("Updated", "Description", new DateTime(2026, 04, 01), new DateTime(2026, 04, 02));
+        var dto = new EventDto("Updated", "Description", new DateTime(2026, 04, 01), new DateTime(2026, 04, 02), null);
 
         serviceMock
             .Setup(service => service.UpdateAsync(eventId, dto, It.IsAny<CancellationToken>()))
