@@ -1,431 +1,238 @@
-using System.ComponentModel.DataAnnotations;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using RestFulApi.DataAccess;
 using RestFulApi.DTOs;
 using RestFulApi.Exceptions;
+using RestFulApi.Interfaces;
 using RestFulApi.Services;
 using Xunit;
 
 namespace RestFulApi.Tests.Services;
 
-public class EventServiceTests
+public class EventServiceTests : IDisposable
 {
-    [Fact]
-    public async Task Create_ShouldCreateEvent_WhenDataIsValid()
+    private readonly ServiceProvider _serviceProvider;
+
+    public EventServiceTests()
     {
-        // Arrange
-        var service = new EventService();
-        var dto = CreateEventDto("Tech Conference", new DateTime(2026, 04, 10, 9, 0, 0),
-            new DateTime(2026, 04, 10, 18, 0, 0));
-        var cts = new CancellationTokenSource();
+        var dbName = Guid.NewGuid().ToString();
+        var services = new ServiceCollection();
+        services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(dbName));
+        services.AddScoped<IEventService, EventService>();
+        _serviceProvider = services.BuildServiceProvider();
+    }
 
-        // Act
-        var createdEvent = await service.CreateAsync(dto, cts.Token);
+    public void Dispose() => _serviceProvider.Dispose();
 
-        // Assert
+    [Fact]
+    public async Task CreateEventAsync_ShouldCreateEvent_WhenDataIsValid()
+    {
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+        var dto = CreateEventDto("Tech Conference", 2, 3);
+
+        var createdEvent = await service.CreateEventAsync(dto, TestContext.Current.CancellationToken);
+
         createdEvent.Id.Should().NotBe(Guid.Empty);
         createdEvent.Title.Should().Be(dto.Title);
-        createdEvent.Description.Should().Be(dto.Description);
-        createdEvent.StartAt.Should().Be(dto.StartAt);
-        createdEvent.EndAt.Should().Be(dto.EndAt);
+        createdEvent.TotalSeats.Should().Be(dto.TotalSeats);
+        createdEvent.AvailableSeats.Should().Be(dto.TotalSeats);
     }
 
     [Fact]
-    public async Task GetAll_ShouldReturnAllEvents_WhenEventsExist()
+    public async Task GetAllEventsAsync_ShouldApplyTitleFilterAndPagination()
     {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        await service.CreateAsync(
-            CreateEventDto("Alpha Meetup", new DateTime(2026, 04, 01), new DateTime(2026, 04, 02)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Beta Meetup", new DateTime(2026, 04, 03), new DateTime(2026, 04, 04)),
-            cts.Token);
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        // Act
-        var result = await service.GetAllAsync(ct: cts.Token);
+        await service.CreateEventAsync(CreateEventDto("Backend meetup", 4, 5), TestContext.Current.CancellationToken);
+        await service.CreateEventAsync(CreateEventDto("Frontend meetup", 6, 7), TestContext.Current.CancellationToken);
+        await service.CreateEventAsync(CreateEventDto("Backend deep dive", 8, 9), TestContext.Current.CancellationToken);
 
-        // Assert
+        var result = await service.GetAllEventsAsync(
+            title: "backend",
+            page: 1,
+            pageSize: 1,
+            ct: TestContext.Current.CancellationToken);
+
         result.TotalCount.Should().Be(2);
-        result.Items.Should().HaveCount(2);
-        result.CurrentPageNumber.Should().Be(1);
-        result.CurrentPageItemsCount.Should().Be(2);
+        result.Items.Should().ContainSingle();
+        result.Items[0].Title.Should().Be("Backend deep dive");
     }
 
     [Fact]
-    public async Task GetById_ShouldReturnEvent_WhenEventExists()
+    public async Task GetAllEventsAsync_ShouldApplyDateRangeFilter()
     {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        var createdEvent =
-            await service.CreateAsync(
-                CreateEventDto("Music Fest", new DateTime(2026, 05, 01), new DateTime(2026, 05, 02)), cts.Token);
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        // Act
-        var result = await service.GetByIdAsync(createdEvent.Id, cts.Token);
+        var now = DateTime.UtcNow.AddDays(30);
+        await service.CreateEventAsync(new CreateEvent
+        {
+            Title = "Out of range old",
+            StartAt = now.AddDays(-5),
+            EndAt = now.AddDays(-4),
+            TotalSeats = 20,
+            Description = "Old"
+        }, TestContext.Current.CancellationToken);
 
-        // Assert
-        result.Id.Should().Be(createdEvent.Id);
+        await service.CreateEventAsync(new CreateEvent
+        {
+            Title = "In range",
+            StartAt = now.AddDays(1),
+            EndAt = now.AddDays(2),
+            TotalSeats = 20,
+            Description = "In range"
+        }, TestContext.Current.CancellationToken);
+
+        await service.CreateEventAsync(new CreateEvent
+        {
+            Title = "Out of range future",
+            StartAt = now.AddDays(7),
+            EndAt = now.AddDays(8),
+            TotalSeats = 20,
+            Description = "Future"
+        }, TestContext.Current.CancellationToken);
+
+        var result = await service.GetAllEventsAsync(
+            from: now,
+            to: now.AddDays(3),
+            page: 1,
+            pageSize: 10,
+            ct: TestContext.Current.CancellationToken);
+
+        result.TotalCount.Should().Be(1);
+        result.Items.Should().ContainSingle();
+        result.Items[0].Title.Should().Be("In range");
+    }
+
+    [Fact]
+    public async Task GetEventByIdAsync_ShouldReturnEvent_WhenItExists()
+    {
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+        var created = await service.CreateEventAsync(CreateEventDto("Music Fest", 3, 4), TestContext.Current.CancellationToken);
+
+        var result = await service.GetEventByIdAsync(created.Id, TestContext.Current.CancellationToken);
+
+        result.Id.Should().Be(created.Id);
         result.Title.Should().Be("Music Fest");
     }
 
     [Fact]
-    public async Task Update_ShouldUpdateExistingEvent_WhenEventExists()
+    public async Task GetEventEntityByIdAsync_ShouldReturnEntity_WhenItExists()
     {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        var createdEvent =
-            await service.CreateAsync(
-                CreateEventDto("Old Title", new DateTime(2026, 06, 01), new DateTime(2026, 06, 02)), cts.Token);
-        var updatedDto = CreateEventDto("New Title", new DateTime(2026, 06, 03), new DateTime(2026, 06, 04), 1,
-            "Updated description");
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = (EventService)scope.ServiceProvider.GetRequiredService<IEventService>();
+        var created = await service.CreateEventAsync(CreateEventDto("Entity event", 2, 3), TestContext.Current.CancellationToken);
 
-        // Act
-        var updatedEvent = await service.UpdateAsync(createdEvent.Id, updatedDto, cts.Token);
+        var entity = await service.GetEventEntityByIdAsync(created.Id, TestContext.Current.CancellationToken);
 
-        // Assert
-        updatedEvent.Id.Should().Be(createdEvent.Id);
+        entity.Id.Should().Be(created.Id);
+        entity.Title.Should().Be("Entity event");
+    }
+
+    [Fact]
+    public async Task UpdateEventAsync_ShouldUpdateEvent_WhenEventExists()
+    {
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+        var created = await service.CreateEventAsync(CreateEventDto("Old Title", 3, 4), TestContext.Current.CancellationToken);
+
+        var now = DateTime.UtcNow;
+        var updatedDto = new UpdateEvent
+        {
+            Title = "New Title",
+            StartAt = now.AddDays(5),
+            EndAt = now.AddDays(6),
+            Description = "Updated description"
+        };
+
+        var updatedEvent = await service.UpdateEventAsync(created.Id, updatedDto, TestContext.Current.CancellationToken);
+
+        updatedEvent.Id.Should().Be(created.Id);
         updatedEvent.Title.Should().Be(updatedDto.Title);
         updatedEvent.Description.Should().Be(updatedDto.Description);
-        updatedEvent.StartAt.Should().Be(updatedDto.StartAt);
-        updatedEvent.EndAt.Should().Be(updatedDto.EndAt);
+        updatedEvent.StartAt.Should().Be(updatedDto.StartAt!.Value);
+        updatedEvent.EndAt.Should().Be(updatedDto.EndAt!.Value);
     }
 
     [Fact]
-    public async Task Delete_ShouldRemoveExistingEvent_WhenEventExists()
+    public async Task DeleteEventAsync_ShouldRemoveEvent_WhenItExists()
     {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        var createdEvent =
-            await service.CreateAsync(
-                CreateEventDto("Delete Me", new DateTime(2026, 07, 01), new DateTime(2026, 07, 02)), cts.Token);
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+        var created = await service.CreateEventAsync(CreateEventDto("Delete me", 3, 4), TestContext.Current.CancellationToken);
 
-        // Act
-        await service.DeleteAsync(createdEvent.Id, cts.Token);
+        await service.DeleteEventAsync(created.Id, TestContext.Current.CancellationToken);
 
-        // Assert
-        var action = () => service.GetByIdAsync(createdEvent.Id, cts.Token);
+        var action = () => service.GetEventByIdAsync(created.Id, TestContext.Current.CancellationToken);
         await action.Should().ThrowAsync<NotFoundException>();
     }
 
     [Fact]
-    public async Task GetAll_ShouldFilterByTitle_WhenTitleProvided()
+    public async Task GetEventEntityByIdAsync_ShouldThrowNotFound_WhenMissing()
     {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        await service.CreateAsync(
-            CreateEventDto("DotNet Conference", new DateTime(2026, 03, 01), new DateTime(2026, 03, 02)), cts.Token);
-        await service.CreateAsync(CreateEventDto("Java Summit", new DateTime(2026, 03, 03), new DateTime(2026, 03, 04)),
-            cts.Token);
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = (EventService)scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        // Act
-        var result = await service.GetAllAsync(title: "dotnet", ct: cts.Token);
+        var action = () => service.GetEventEntityByIdAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
-        // Assert
-        result.Items.Should().ContainSingle();
-        result.TotalCount.Should().Be(1);
-        result.Items[0].Title.Should().Be("DotNet Conference");
+        await action.Should().ThrowAsync<NotFoundException>();
     }
 
     [Fact]
-    public async Task GetAll_ShouldFilterByDateRange_WhenStartAndEndDatesProvided()
+    public async Task GetEventByIdAsync_ShouldThrowNotFound_WhenMissing()
     {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Event A", new DateTime(2026, 01, 01), new DateTime(2026, 01, 02)),
-            cts.Token);
-        await service.CreateAsync(CreateEventDto("Event B", new DateTime(2026, 01, 10), new DateTime(2026, 01, 11)),
-            cts.Token);
-        await service.CreateAsync(CreateEventDto("Event C", new DateTime(2026, 01, 20), new DateTime(2026, 01, 21)),
-            cts.Token);
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        // Act
-        var result = await service.GetAllAsync(from: new DateTime(2026, 01, 05), to: new DateTime(2026, 01, 15),
-            ct: cts.Token);
+        var action = () => service.GetEventByIdAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
-        // Assert
-        result.Items.Should().ContainSingle();
-        result.Items[0].Title.Should().Be("Event B");
+        await action.Should().ThrowAsync<NotFoundException>();
     }
 
     [Fact]
-    public async Task GetAll_ShouldReturnRequestedPage_WhenPaginationApplied()
+    public async Task UpdateEventAsync_ShouldThrowNotFound_WhenMissing()
     {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Event 1", new DateTime(2026, 01, 01), new DateTime(2026, 01, 02)),
-            cts.Token);
-        await service.CreateAsync(CreateEventDto("Event 2", new DateTime(2026, 01, 03), new DateTime(2026, 01, 04)),
-            cts.Token);
-        await service.CreateAsync(CreateEventDto("Event 3", new DateTime(2026, 01, 05), new DateTime(2026, 01, 06)),
-            cts.Token);
-
-        // Act
-        var result = await service.GetAllAsync(page: 2, pageSize: 1, ct: cts.Token);
-
-        // Assert
-        result.TotalCount.Should().Be(3);
-        result.CurrentPageNumber.Should().Be(2);
-        result.CurrentPageItemsCount.Should().Be(1);
-        result.Items.Should().ContainSingle();
-        result.Items[0].Title.Should().Be("Event 2");
-    }
-
-    [Fact]
-    public async Task GetAll_ShouldApplyCombinedFiltering_WhenAllParametersProvided()
-    {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        await service.CreateAsync(
-            CreateEventDto("Backend Meetup", new DateTime(2026, 08, 01), new DateTime(2026, 08, 02)), cts.Token);
-        await service.CreateAsync(
-            CreateEventDto("Backend Deep Dive", new DateTime(2026, 08, 03), new DateTime(2026, 08, 04)), cts.Token);
-        await service.CreateAsync(
-            CreateEventDto("Frontend Meetup", new DateTime(2026, 08, 03), new DateTime(2026, 08, 04)), cts.Token);
-
-        // Act
-        var result = await service.GetAllAsync(
-            title: "backend",
-            from: new DateTime(2026, 08, 02),
-            to: new DateTime(2026, 08, 04),
-            page: 1,
-            pageSize: 10,
-            ct: cts.Token);
-
-        // Assert
-        result.Items.Should().ContainSingle();
-        result.TotalCount.Should().Be(1);
-        result.Items[0].Title.Should().Be("Backend Deep Dive");
-    }
-
-    [Fact]
-    public async Task GetById_ShouldThrowNotFoundException_WhenEventDoesNotExist()
-    {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
         var missingId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        var dto = new UpdateEvent
+        {
+            Title = "Updated Event",
+            StartAt = now.AddDays(1),
+            EndAt = now.AddDays(2),
+            Description = "Updated description"
+        };
+        var action = () => service.UpdateEventAsync(missingId, dto, TestContext.Current.CancellationToken);
 
-        // Act
-        var action = () => service.GetByIdAsync(missingId, cts.Token);
-
-        // Assert
         await action.Should().ThrowAsync<NotFoundException>();
     }
 
     [Fact]
-    public async Task Update_ShouldThrowNotFoundException_WhenEventDoesNotExist()
+    public async Task DeleteEventAsync_ShouldThrowNotFound_WhenMissing()
     {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        var missingId = Guid.NewGuid();
-        var dto = CreateEventDto("Updated Event", new DateTime(2026, 09, 01), new DateTime(2026, 09, 02));
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        // Act
-        var action = () => service.UpdateAsync(missingId, dto, cts.Token);
+        var action = () => service.DeleteEventAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
-        // Assert
         await action.Should().ThrowAsync<NotFoundException>();
     }
 
-    [Fact]
-    public async Task GetAll_ShouldNotApplyTitleFilter_WhenTitleIsEmptyString()
+    private static CreateEvent CreateEventDto(string title, int startOffsetDays, int endOffsetDays, int totalSeats = 10)
     {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Alpha", new DateTime(2026, 12, 01), new DateTime(2026, 12, 02)),
-            cts.Token);
-        await service.CreateAsync(CreateEventDto("Beta", new DateTime(2026, 12, 03), new DateTime(2026, 12, 04)),
-            cts.Token);
-
-        // Act
-        var result = await service.GetAllAsync(title: string.Empty, ct: cts.Token);
-
-        // Assert
-        result.TotalCount.Should().Be(2);
-        result.Items.Should().HaveCount(2);
+        var now = DateTime.UtcNow;
+        return new CreateEvent
+        {
+            Title = title,
+            Description = "Description",
+            StartAt = now.AddDays(startOffsetDays),
+            EndAt = now.AddDays(endOffsetDays),
+            TotalSeats = totalSeats
+        };
     }
-
-    [Fact]
-    public async Task GetAll_ShouldNotApplyTitleFilter_WhenTitleContainsOnlyWhitespace()
-    {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Alpha", new DateTime(2026, 12, 05), new DateTime(2026, 12, 06)),
-            cts.Token);
-        await service.CreateAsync(CreateEventDto("Beta", new DateTime(2026, 12, 07), new DateTime(2026, 12, 08)),
-            cts.Token);
-
-        // Act
-        var result = await service.GetAllAsync(title: "   ", ct: cts.Token);
-
-        // Assert
-        result.TotalCount.Should().Be(2);
-        result.Items.Should().HaveCount(2);
-    }
-
-    [Fact]
-    public async Task GetAll_ShouldIncludeEvent_WhenStartAtEqualsFromBoundary()
-    {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        var boundaryStart = new DateTime(2027, 01, 10, 9, 0, 0);
-        await service.CreateAsync(CreateEventDto("Boundary Start", boundaryStart, new DateTime(2027, 01, 10, 12, 0, 0)),
-            cts.Token);
-        await service.CreateAsync(CreateEventDto("Earlier Event", new DateTime(2027, 01, 09, 9, 0, 0),
-            new DateTime(2027, 01, 09, 12, 0, 0)), cts.Token);
-
-        // Act
-        var result = await service.GetAllAsync(from: boundaryStart, ct: cts.Token);
-
-        // Assert
-        result.Items.Should().ContainSingle(item => item.Title == "Boundary Start");
-    }
-
-    [Fact]
-    public async Task GetAll_ShouldIncludeEvent_WhenEndAtEqualsToBoundary()
-    {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        var boundaryEnd = new DateTime(2027, 01, 15, 18, 0, 0);
-        await service.CreateAsync(CreateEventDto("Boundary End", new DateTime(2027, 01, 15, 9, 0, 0), boundaryEnd),
-            cts.Token);
-        await service.CreateAsync(CreateEventDto("Later Event", new DateTime(2027, 01, 16, 9, 0, 0),
-            new DateTime(2027, 01, 16, 18, 0, 0)), cts.Token);
-
-        // Act
-        var result = await service.GetAllAsync(to: boundaryEnd, ct: cts.Token);
-
-        // Assert
-        result.Items.Should().ContainSingle(item => item.Title == "Boundary End");
-    }
-
-    [Fact]
-    public async Task GetAll_ShouldReturnEmptyItems_WhenPageExceedsAvailableData()
-    {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Only Event", new DateTime(2027, 02, 01), new DateTime(2027, 02, 02)),
-            cts.Token);
-
-        // Act
-        var result = await service.GetAllAsync(page: 3, pageSize: 1, ct: cts.Token);
-
-        // Assert
-        result.TotalCount.Should().Be(1);
-        result.CurrentPageNumber.Should().Be(3);
-        result.CurrentPageItemsCount.Should().Be(0);
-        result.Items.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GetAll_ShouldReturnAllItems_WhenPageSizeEqualsTotalCount()
-    {
-        // Arrange
-        var service = new EventService();
-        var cts = new CancellationTokenSource();
-        await service.CreateAsync(CreateEventDto("Event A", new DateTime(2027, 03, 01), new DateTime(2027, 03, 02)),
-            cts.Token);
-        await service.CreateAsync(CreateEventDto("Event B", new DateTime(2027, 03, 03), new DateTime(2027, 03, 04)),
-            cts.Token);
-
-        // Act
-        var result = await service.GetAllAsync(page: 1, pageSize: 2, ct: cts.Token);
-
-        // Assert
-        result.TotalCount.Should().Be(2);
-        result.Items.Should().HaveCount(2);
-        result.CurrentPageItemsCount.Should().Be(2);
-    }
-
-    [Fact]
-    public void EventDto_ShouldFailValidation_WhenEndAtIsEarlierThanStartAt()
-    {
-        // Arrange
-        var dto = CreateEventDto("Invalid Dates", new DateTime(2026, 10, 10), new DateTime(2026, 10, 09));
-        var validationResults = new List<ValidationResult>();
-
-        // Act
-        var isValid = Validator.TryValidateObject(dto, new ValidationContext(dto), validationResults, true);
-
-        // Assert
-        isValid.Should().BeFalse();
-        validationResults.Should()
-            .Contain(result => result.ErrorMessage == "Дата завершения должна быть позже даты начала.");
-    }
-
-    [Fact]
-    public void EventDto_ShouldFailValidation_WhenStartAtEqualsEndAt()
-    {
-        // Arrange
-        var pointInTime = new DateTime(2027, 04, 01, 10, 0, 0);
-        var dto = CreateEventDto("Equal Dates", pointInTime, pointInTime);
-        var validationResults = new List<ValidationResult>();
-
-        // Act
-        var isValid = Validator.TryValidateObject(dto, new ValidationContext(dto), validationResults, true);
-
-        // Assert
-        isValid.Should().BeFalse();
-        validationResults.Should()
-            .Contain(result => result.ErrorMessage == "Дата завершения должна быть позже даты начала.");
-    }
-
-    [Fact]
-    public void EventDto_ShouldFailValidation_WhenTotalSeatsIsNull()
-    {
-        // Arrange
-        var dto = new EventDto(
-            "No Seats Event",
-            "Description",
-            new DateTime(2027, 04, 10, 10, 0, 0),
-            new DateTime(2027, 04, 10, 12, 0, 0),
-            null);
-        var validationResults = new List<ValidationResult>();
-
-        // Act
-        var isValid = Validator.TryValidateObject(dto, new ValidationContext(dto), validationResults, true);
-
-        // Assert
-        isValid.Should().BeFalse();
-        validationResults.Should().Contain(result =>
-            result.ErrorMessage == "Общее количество мест должно быть больше нуля." &&
-            result.MemberNames.Contains("TotalSeats"));
-    }
-
-    [Fact]
-    public void EventDto_ShouldFailValidation_WhenTotalSeatsIsZero()
-    {
-        // Arrange
-        var dto = CreateEventDto(
-            "Zero Seats Event",
-            new DateTime(2027, 04, 11, 10, 0, 0),
-            new DateTime(2027, 04, 11, 12, 0, 0),
-            0);
-        var validationResults = new List<ValidationResult>();
-
-        // Act
-        var isValid = Validator.TryValidateObject(dto, new ValidationContext(dto), validationResults, true);
-
-        // Assert
-        isValid.Should().BeFalse();
-        validationResults.Should().Contain(result =>
-            result.ErrorMessage == "Общее количество мест должно быть больше нуля." &&
-            result.MemberNames.Contains("TotalSeats"));
-    }
-
-    private static EventDto CreateEventDto(string title, DateTime startAt, DateTime endAt, int totalSeats = 1,
-        string? description = "Description") =>
-        new(title, description, startAt, endAt, totalSeats);
 }

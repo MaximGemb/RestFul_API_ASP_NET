@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using RestFulApi.DTOs;
 using RestFulApi.Interfaces;
-using RestFulApi.Models;
 
 namespace RestFulApi.Controllers;
 
@@ -27,7 +26,7 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// <response code="200">Успешное выполнение.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PaginatedResult<Event>>> GetEvents(
+    public async Task<ActionResult<PaginatedResult<EventInfo>>> GetEvents(
         [FromQuery] string? title = null,
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null,
@@ -35,7 +34,7 @@ public class EventsController(IEventService eventService, IBookingService bookin
         [FromQuery] [Range(1, int.MaxValue)] int pageSize = 10,
         CancellationToken ct = default)
     {
-        var events = await eventService.GetAllAsync(title, from, to, page, pageSize, ct);
+        var events = await eventService.GetAllEventsAsync(title, from, to, page, pageSize, ct);
         return Ok(events);
     }
 
@@ -50,9 +49,9 @@ public class EventsController(IEventService eventService, IBookingService bookin
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Event>> GetEvent(Guid id, CancellationToken ct)
+    public async Task<ActionResult<EventInfo>> GetEvent(Guid id, CancellationToken ct)
     {
-        var ev = await eventService.GetByIdAsync(id, ct);
+        var ev = await eventService.GetEventByIdAsync(id, ct);
         return Ok(ev);
     }
 
@@ -67,9 +66,9 @@ public class EventsController(IEventService eventService, IBookingService bookin
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<Event>> CreateEvent([FromBody] EventDto newEvent, CancellationToken ct)
+    public async Task<ActionResult<EventInfo>> CreateEvent([FromBody] CreateEvent newEvent, CancellationToken ct)
     {
-        var createdEvent = await eventService.CreateAsync(newEvent, ct);
+        var createdEvent = await eventService.CreateEventAsync(newEvent, ct);
 
         return CreatedAtAction(nameof(GetEvent), new { id = createdEvent.Id }, createdEvent);
     }
@@ -88,9 +87,9 @@ public class EventsController(IEventService eventService, IBookingService bookin
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateEvent(Guid id, [FromBody] EventDto updatedEvent, CancellationToken ct)
+    public async Task<IActionResult> UpdateEvent(Guid id, [FromBody] UpdateEvent updatedEvent, CancellationToken ct)
     {
-        await eventService.UpdateAsync(id, updatedEvent, ct);
+        await eventService.UpdateEventAsync(id, updatedEvent, ct);
         return NoContent();
     }
 
@@ -107,7 +106,7 @@ public class EventsController(IEventService eventService, IBookingService bookin
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteEvent(Guid id, CancellationToken ct)
     {
-        await eventService.DeleteAsync(id, ct);
+        await eventService.DeleteEventAsync(id, ct);
         return NoContent();
     }
 

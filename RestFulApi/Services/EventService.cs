@@ -1,4 +1,5 @@
-using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
+using RestFulApi.DataAccess;
 using RestFulApi.DTOs;
 using RestFulApi.Exceptions;
 using RestFulApi.Interfaces;
@@ -7,11 +8,20 @@ using RestFulApi.Models;
 namespace RestFulApi.Services;
 
 /// <summary>
-/// Сервис для работы с событиями в памяти.
+/// Сервис для работы с событиями через базу данных.
 /// </summary>
-public class EventService : IEventService
+internal class EventService : IEventService
 {
-    private readonly ConcurrentDictionary<Guid, Event> _events = [];
+    private readonly AppDbContext _context;
+
+    /// <summary>
+    /// Инициализирует новый экземпляр класса <see cref="EventService"/>.
+    /// </summary>
+    /// <param name="context">Контекст базы данных.</param>
+    public EventService(AppDbContext context)
+    {
+        _context = context;
+    }
 
     /// <summary>
     /// Возвращает список событий с учетом фильтрации и пагинации.
@@ -23,16 +33,17 @@ public class EventService : IEventService
     /// <param name="pageSize">Количество элементов на странице.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <returns>Результат пагинации со списком найденных событий.</returns>
-    public Task<PaginatedResult<Event>> GetAllAsync(string? title = null, DateTime? from = null, DateTime? to = null,
+    public async Task<PaginatedResult<EventInfo>> GetAllEventsAsync(
+        string? title = null,
+        DateTime? from = null,
+        DateTime? to = null,
         int page = 1,
         int pageSize = 10, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
-
-        var query = _events.Values.AsEnumerable();
+        var query = _context.Events.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(title))
-            query = query.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(e => e.Title.ToLower().Contains(title.ToLower()));
 
         if (from.HasValue)
             query = query.Where(e => e.StartAt >= from.Value);
@@ -40,37 +51,20 @@ public class EventService : IEventService
         if (to.HasValue)
             query = query.Where(e => e.EndAt <= to.Value);
 
-        var filteredList = query.ToList();
+        var totalCount = await query.CountAsync(ct);
 
-        return Task.FromResult(GetEventsWithPagination(filteredList, page, pageSize));
-    }
-
-    /// <summary>
-    /// Выполняет пагинацию коллекции событий.
-    /// </summary>
-    /// <param name="filteredEvents">Исходная коллекция событий.</param>
-    /// <param name="pageNumber">Номер запрашиваемой страницы (начиная с 1).</param>
-    /// <param name="pageSize">Количество элементов на странице.</param>
-    /// <returns>Объект <see cref="PaginatedResult{Event}"/> с данными о странице и метаданными.</returns>
-    private static PaginatedResult<Event> GetEventsWithPagination(
-        List<Event> filteredEvents,
-        int pageNumber,
-        int pageSize)
-    {
-        var totalCount = filteredEvents.Count;
-
-        var items = filteredEvents
-            .OrderByDescending(c => c.StartAt)
-            .Skip((pageNumber - 1) * pageSize)
+        var items = await query
+            .OrderByDescending(e => e.StartAt)
+            .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
+            .ToListAsync(ct);
 
-        return new PaginatedResult<Event>
+        return new PaginatedResult<EventInfo>
         {
             TotalCount = totalCount,
-            Items = items,
-            CurrentPageNumber = pageNumber,
-            CurrentPageItemsCount = items.Count
+            Items = items.Select(ToInfo).ToArray(),
+            Page = page,
+            PageSize = pageSize
         };
     }
 
@@ -79,14 +73,25 @@ public class EventService : IEventService
     /// </summary>
     /// <param name="id">Идентификатор события.</param>
     /// <param name="ct">Токен отмены операции.</param>
-    /// <returns>Найденное событие.</returns>
-    public Task<Event> GetByIdAsync(Guid id, CancellationToken ct = default)
+    /// <returns>Информация о найденном событии.</returns>
+    public async Task<EventInfo> GetEventByIdAsync(Guid id, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
+        var @event = await _context.Events.FirstOrDefaultAsync(e => e.Id == id, ct)
+                     ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
 
-        return _events.TryGetValue(id, out var ev)
-            ? Task.FromResult(ev)
-            : throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
+        return ToInfo(@event);
+    }
+
+    /// <summary>
+    /// Возвращает сущность события по идентификатору (для внутреннего использования).
+    /// </summary>
+    /// <param name="id">Идентификатор события.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>Сущность события.</returns>
+    public async Task<Event> GetEventEntityByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _context.Events.FirstOrDefaultAsync(e => e.Id == id, ct)
+               ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
     }
 
     /// <summary>
@@ -94,24 +99,15 @@ public class EventService : IEventService
     /// </summary>
     /// <param name="item">Данные создаваемого события.</param>
     /// <param name="ct">Токен отмены операции.</param>
-    /// <returns>Созданное событие.</returns>
-    public Task<Event> CreateAsync(EventDto item, CancellationToken ct = default)
+    /// <returns>Информация о созданном событии.</returns>
+    public async Task<EventInfo> CreateEventAsync(CreateEvent item, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
+        var @event = Event.Create(item.Title, item.StartAt, item.EndAt, item.TotalSeats,
+            item.Description);
 
-        var newEvent = new Event
-        {
-            Id = Guid.NewGuid(),
-            Title = item.Title,
-            Description = item.Description,
-            StartAt = item.StartAt,
-            EndAt = item.EndAt,
-            TotalSeats = item.TotalSeats.GetValueOrDefault(),
-            AvailableSeats = item.TotalSeats.GetValueOrDefault()
-        };
-
-        _events.TryAdd(newEvent.Id, newEvent);
-        return Task.FromResult(newEvent);
+        await _context.Events.AddAsync(@event, ct);
+        await _context.SaveChangesAsync(ct);
+        return ToInfo(@event);
     }
 
     /// <summary>
@@ -120,20 +116,16 @@ public class EventService : IEventService
     /// <param name="id">Идентификатор обновляемого события.</param>
     /// <param name="item">Новые данные события.</param>
     /// <param name="ct">Токен отмены операции.</param>
-    /// <returns>Обновленное событие.</returns>
-    public Task<Event> UpdateAsync(Guid id, EventDto item, CancellationToken ct = default)
+    /// <returns>Информация об обновленном событии.</returns>
+    public async Task<EventInfo> UpdateEventAsync(Guid id, UpdateEvent item, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
+        var @event = await _context.Events.FirstOrDefaultAsync(e => e.Id == id, ct)
+                     ?? throw new NotFoundException(id, $"Can't update event with id {id}. Event not found");
 
-        if (!_events.TryGetValue(id, out var ev))
-            throw new NotFoundException(id, $"Can't update event with id {id}. Event not found");
+        @event.Update(item.Title, item.StartAt, item.EndAt, item.Description);
 
-        ev.Title = item.Title;
-        ev.Description = item.Description;
-        ev.StartAt = item.StartAt;
-        ev.EndAt = item.EndAt;
-
-        return Task.FromResult(ev);
+        await _context.SaveChangesAsync(ct);
+        return ToInfo(@event);
     }
 
     /// <summary>
@@ -142,12 +134,26 @@ public class EventService : IEventService
     /// <param name="id">Идентификатор удаляемого события.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Задача, представляющая завершение операции удаления.</returns>
-    public Task DeleteAsync(Guid id, CancellationToken ct = default)
+    public async Task DeleteEventAsync(Guid id, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
+        var @event = await _context.Events.FirstOrDefaultAsync(e => e.Id == id, ct)
+                     ?? throw new NotFoundException(id, $"Can't delete event with id {id}. Event not found");
 
-        return _events.TryRemove(id, out _)
-            ? Task.CompletedTask
-            : throw new NotFoundException(id, $"Can't delete event with id {id}. Event not found");
+        _context.Events.Remove(@event);
+        await _context.SaveChangesAsync(ct);
     }
+
+    /// <summary>
+    /// Маппинг сущности Event в DTO EventInfo.
+    /// </summary>
+    internal static EventInfo ToInfo(Event @event) => new()
+    {
+        Id = @event.Id,
+        Title = @event.Title,
+        StartAt = @event.StartAt!.Value,
+        EndAt = @event.EndAt!.Value,
+        TotalSeats = @event.TotalSeats,
+        AvailableSeats = @event.AvailableSeats,
+        Description = @event.Description
+    };
 }

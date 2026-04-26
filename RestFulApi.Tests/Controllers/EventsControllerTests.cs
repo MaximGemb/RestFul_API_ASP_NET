@@ -16,26 +16,28 @@ public class EventsControllerTests
     {
         // Arrange
         var serviceMock = new Mock<IEventService>();
-        var expected = new PaginatedResult<Event>
+        var expected = new PaginatedResult<EventInfo>
         {
             TotalCount = 1,
-            CurrentPageNumber = 1,
-            CurrentPageItemsCount = 1,
+            Page = 1,
+            PageSize = 10,
             Items =
             [
-                new Event
+                new EventInfo
                 {
                     Id = Guid.NewGuid(),
                     Title = "Conference",
                     Description = "Description",
                     StartAt = new DateTime(2026, 01, 01),
-                    EndAt = new DateTime(2026, 01, 02)
+                    EndAt = new DateTime(2026, 01, 02),
+                    TotalSeats = 100,
+                    AvailableSeats = 100
                 }
             ]
         };
 
         serviceMock
-            .Setup(service => service.GetAllAsync(null, null, null, 1, 10, It.IsAny<CancellationToken>()))
+            .Setup(service => service.GetAllEventsAsync(null, null, null, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
@@ -46,7 +48,7 @@ public class EventsControllerTests
 
         // Assert
         var okResult = actionResult.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var value = okResult.Value.Should().BeOfType<PaginatedResult<Event>>().Subject;
+        var value = okResult.Value.Should().BeOfType<PaginatedResult<EventInfo>>().Subject;
         value.TotalCount.Should().Be(expected.TotalCount);
         value.Items.Should().ContainSingle();
     }
@@ -57,17 +59,19 @@ public class EventsControllerTests
         // Arrange
         var serviceMock = new Mock<IEventService>();
         var eventId = Guid.NewGuid();
-        var expected = new Event
+        var expected = new EventInfo
         {
             Id = eventId,
             Title = "Conference",
             Description = "Description",
             StartAt = new DateTime(2026, 02, 01),
-            EndAt = new DateTime(2026, 02, 02)
+            EndAt = new DateTime(2026, 02, 02),
+            TotalSeats = 100,
+            AvailableSeats = 100
         };
 
         serviceMock
-            .Setup(service => service.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .Setup(service => service.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
@@ -78,7 +82,7 @@ public class EventsControllerTests
 
         // Assert
         var okResult = actionResult.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var value = okResult.Value.Should().BeOfType<Event>().Subject;
+        var value = okResult.Value.Should().BeOfType<EventInfo>().Subject;
         value.Id.Should().Be(eventId);
     }
 
@@ -87,18 +91,26 @@ public class EventsControllerTests
     {
         // Arrange
         var serviceMock = new Mock<IEventService>();
-        var dto = new EventDto("Conference", "Description", new DateTime(2026, 03, 01), new DateTime(2026, 03, 02), null);
-        var created = new Event
+        var dto = new CreateEvent
+        {
+            Title = "Conference",
+            Description = "Description",
+            StartAt = new DateTime(2026, 03, 01),
+            EndAt = new DateTime(2026, 03, 02)
+        };
+        var created = new EventInfo
         {
             Id = Guid.NewGuid(),
-            Title = dto.Title,
+            Title = dto.Title!,
             Description = dto.Description,
-            StartAt = dto.StartAt,
-            EndAt = dto.EndAt
+            StartAt = dto.StartAt!.Value,
+            EndAt = dto.EndAt!.Value,
+            TotalSeats = 0,
+            AvailableSeats = 0
         };
 
         serviceMock
-            .Setup(service => service.CreateAsync(dto, It.IsAny<CancellationToken>()))
+            .Setup(service => service.CreateEventAsync(dto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(created);
 
         var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
@@ -111,7 +123,7 @@ public class EventsControllerTests
         var createdResult = actionResult.Result.Should().BeOfType<CreatedAtActionResult>().Subject;
         createdResult.ActionName.Should().Be(nameof(EventsController.GetEvent));
         createdResult.RouteValues!["id"].Should().Be(created.Id);
-        var value = createdResult.Value.Should().BeOfType<Event>().Subject;
+        var value = createdResult.Value.Should().BeOfType<EventInfo>().Subject;
         value.Id.Should().Be(created.Id);
     }
 
@@ -121,17 +133,25 @@ public class EventsControllerTests
         // Arrange
         var serviceMock = new Mock<IEventService>();
         var eventId = Guid.NewGuid();
-        var dto = new EventDto("Updated", "Description", new DateTime(2026, 04, 01), new DateTime(2026, 04, 02), null);
+        var dto = new UpdateEvent
+        {
+            Title = "Updated",
+            Description = "Description",
+            StartAt = new DateTime(2026, 04, 01),
+            EndAt = new DateTime(2026, 04, 02)
+        };
 
         serviceMock
-            .Setup(service => service.UpdateAsync(eventId, dto, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Event
+            .Setup(service => service.UpdateEventAsync(eventId, dto, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EventInfo
             {
                 Id = eventId,
-                Title = dto.Title,
+                Title = dto.Title!,
                 Description = dto.Description,
-                StartAt = dto.StartAt,
-                EndAt = dto.EndAt
+                StartAt = dto.StartAt!.Value,
+                EndAt = dto.EndAt!.Value,
+                TotalSeats = 100,
+                AvailableSeats = 100
             });
 
         var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
@@ -152,7 +172,7 @@ public class EventsControllerTests
         var eventId = Guid.NewGuid();
 
         serviceMock
-            .Setup(service => service.DeleteAsync(eventId, It.IsAny<CancellationToken>()))
+            .Setup(service => service.DeleteEventAsync(eventId, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var controller = new EventsController(serviceMock.Object, new Mock<IBookingService>().Object);
@@ -171,7 +191,7 @@ public class EventsControllerTests
         // Arrange
         var eventId = Guid.NewGuid();
         var bookingId = Guid.NewGuid();
-        var booking = new Booking
+        var booking = new BookingInfo
         {
             Id = bookingId,
             EventId = eventId,
@@ -195,7 +215,7 @@ public class EventsControllerTests
         acceptedResult.ActionName.Should().Be("GetBooking");
         acceptedResult.ControllerName.Should().Be("Bookings");
         acceptedResult.RouteValues!["id"].Should().Be(booking.Id);
-        var value = acceptedResult.Value.Should().BeOfType<Booking>().Subject;
+        var value = acceptedResult.Value.Should().BeOfType<BookingInfo>().Subject;
         value.Id.Should().Be(booking.Id);
     }
 }

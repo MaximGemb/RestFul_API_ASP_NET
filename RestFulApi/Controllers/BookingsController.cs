@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using RestFulApi.DTOs;
 using RestFulApi.Interfaces;
-using RestFulApi.Models;
 
 namespace RestFulApi.Controllers;
 
@@ -23,7 +23,7 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Booking>> GetBooking(Guid id, CancellationToken ct)
+    public async Task<ActionResult<BookingInfo>> GetBooking(Guid id, CancellationToken ct)
     {
         var booking = await bookingService.GetBookingByIdAsync(id, ct);
         return Ok(booking);

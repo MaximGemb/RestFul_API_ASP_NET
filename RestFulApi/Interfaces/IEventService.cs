@@ -1,5 +1,4 @@
 ﻿using RestFulApi.DTOs;
-using RestFulApi.Models;
 
 namespace RestFulApi.Interfaces;
 
@@ -18,7 +17,8 @@ public interface IEventService
     /// <param name="pageSize">Количество элементов на странице.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Результат пагинации со списком найденных событий.</returns>
-    Task<PaginatedResult<Event>> GetAllAsync(string? title = null, DateTime? from = null, DateTime? to = null, int page = 1,
+    Task<PaginatedResult<EventInfo>> GetAllEventsAsync(string? title = null, DateTime? from = null, DateTime? to = null,
+        int page = 1,
         int pageSize = 10, CancellationToken ct = default);
 
     /// <summary>
@@ -26,25 +26,25 @@ public interface IEventService
     /// </summary>
     /// <param name="id">Идентификатор события.</param>
     /// <param name="ct">Токен отмены операции.</param>
-    /// <returns>Найденное событие.</returns>
-    Task<Event> GetByIdAsync(Guid id, CancellationToken ct = default);
+    /// <returns>Информация о найденном событии.</returns>
+    Task<EventInfo> GetEventByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
     /// Создает новое событие.
     /// </summary>
     /// <param name="item">Данные создаваемого события.</param>
     /// <param name="ct">Токен отмены операции.</param>
-    /// <returns>Созданное событие.</returns>
-    Task<Event> CreateAsync(EventDto item, CancellationToken ct = default);
+    /// <returns>Информация о созданном событии.</returns>
+    Task<EventInfo> CreateEventAsync(CreateEvent item, CancellationToken ct = default);
 
     /// <summary>
     /// Обновляет существующее событие.
     /// </summary>
     /// <param name="id">Идентификатор обновляемого события.</param>
-    /// <param name="ct">Токен отмены операции.</param>
     /// <param name="item">Новые данные события.</param>
-    /// <returns>Обновленное событие.</returns>
-    Task<Event> UpdateAsync(Guid id, EventDto item, CancellationToken ct = default);
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>Информация об обновленном событии.</returns>
+    Task<EventInfo> UpdateEventAsync(Guid id, UpdateEvent item, CancellationToken ct = default);
 
     /// <summary>
     /// Удаляет событие по идентификатору.
@@ -52,5 +52,5 @@ public interface IEventService
     /// <param name="id">Идентификатор удаляемого события.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Задача, представляющая завершение операции удаления.</returns>
-    Task DeleteAsync(Guid id, CancellationToken ct = default);
+    Task DeleteEventAsync(Guid id, CancellationToken ct = default);
 }

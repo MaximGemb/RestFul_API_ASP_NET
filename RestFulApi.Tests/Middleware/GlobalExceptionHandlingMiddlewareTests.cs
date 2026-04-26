@@ -7,6 +7,7 @@ using Moq;
 using RestFulApi.Exceptions;
 using RestFulApi.Middleware;
 using Xunit;
+using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;
 
 namespace RestFulApi.Tests.Middleware;
 
@@ -272,5 +273,121 @@ public class GlobalExceptionHandlingMiddlewareTests
         return;
 
         Task Next(HttpContext _) => throw exception;
+    }
+
+    // --- MapStatusCode ---
+
+    public static IEnumerable<object[]> ExceptionToStatusAndTitleData =>
+    [
+        [new ValidationException("val error"), StatusCodes.Status400BadRequest, "Validation Error"],
+        [new CustomValidationException("Field", "Required"), StatusCodes.Status400BadRequest, "Validation Error"],
+        [new NotFoundException(Guid.NewGuid(), "not found"), StatusCodes.Status404NotFound, "Not Found"],
+        [new NoAvailableSeatsException(Guid.NewGuid(), "no seats"), StatusCodes.Status409Conflict, "No Available Seats"],
+        [new Exception("generic"), StatusCodes.Status500InternalServerError, "Internal Server Error"],
+    ];
+
+    [Theory]
+    [MemberData(nameof(ExceptionToStatusAndTitleData))]
+    public async Task MapStatusCode_ShouldReturnCorrectStatusCodeAndTitle(Exception exception, int expectedStatus, string expectedTitle)
+    {
+        // Arrange
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        var middleware = new GlobalExceptionHandlingMiddleware(_ => throw exception, _loggerMock.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        Assert.Equal(expectedStatus, context.Response.StatusCode);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var body = await new StreamReader(context.Response.Body).ReadToEndAsync(TestContext.Current.CancellationToken);
+#pragma warning disable CA1869
+        var pd = JsonSerializer.Deserialize<ProblemDetails>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+#pragma warning restore CA1869
+        Assert.NotNull(pd);
+        Assert.Equal(expectedTitle, pd.Title);
+    }
+
+    [Fact]
+    public async Task MapStatusCode_ShouldReturn499_ForOperationCanceledException()
+    {
+        // Arrange
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        var middleware = new GlobalExceptionHandlingMiddleware(
+            _ => throw new OperationCanceledException(), _loggerMock.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        Assert.Equal(499, context.Response.StatusCode);
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var body = await new StreamReader(context.Response.Body).ReadToEndAsync(TestContext.Current.CancellationToken);
+        Assert.Empty(body);
+    }
+
+    // --- CustomValidationException branch ---
+
+    [Fact]
+    public async Task InvokeAsync_ShouldHandleCustomValidationException_WithSingleError_AndReturnValidationProblemDetails()
+    {
+        // Arrange
+        var exception = new CustomValidationException("Name", "Name is required");
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        var middleware = new GlobalExceptionHandlingMiddleware(_ => throw exception, _loggerMock.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.StartsWith("application/json", context.Response.ContentType);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var body = await new StreamReader(context.Response.Body).ReadToEndAsync(TestContext.Current.CancellationToken);
+        using var doc = JsonDocument.Parse(body);
+
+        Assert.Equal(400, doc.RootElement.GetProperty("status").GetInt32());
+        Assert.Equal("Validation Error", doc.RootElement.GetProperty("title").GetString());
+        Assert.Equal("Validation failed", doc.RootElement.GetProperty("detail").GetString());
+
+        var errors = doc.RootElement.GetProperty("errors");
+        Assert.True(errors.TryGetProperty("Name", out var nameErrors));
+        Assert.Contains("Name is required", nameErrors.EnumerateArray().Select(e => e.GetString()));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldHandleCustomValidationException_WithMultipleErrors_AndReturnAllFields()
+    {
+        // Arrange
+        var errorsDict = new Dictionary<string, ICollection<string>>
+        {
+            { "Title", new List<string> { "Title is required", "Title is too short" } },
+            { "Date", new List<string> { "Date must be in the future" } }
+        };
+        var exception = new CustomValidationException(errorsDict);
+        var context = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        var middleware = new GlobalExceptionHandlingMiddleware(_ => throw exception, _loggerMock.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var body = await new StreamReader(context.Response.Body).ReadToEndAsync(TestContext.Current.CancellationToken);
+        using var doc = JsonDocument.Parse(body);
+
+        var errors = doc.RootElement.GetProperty("errors");
+
+        Assert.True(errors.TryGetProperty("Title", out var titleErrors));
+        var titleErrorList = titleErrors.EnumerateArray().Select(e => e.GetString()).ToList();
+        Assert.Contains("Title is required", titleErrorList);
+        Assert.Contains("Title is too short", titleErrorList);
+
+        Assert.True(errors.TryGetProperty("Date", out var dateErrors));
+        Assert.Contains("Date must be in the future", dateErrors.EnumerateArray().Select(e => e.GetString()));
     }
 }

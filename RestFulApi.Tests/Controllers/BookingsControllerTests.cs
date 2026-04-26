@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using RestFulApi.Controllers;
+using RestFulApi.DTOs;
 using RestFulApi.Exceptions;
 using RestFulApi.Interfaces;
 using RestFulApi.Models;
@@ -25,7 +26,7 @@ public class BookingsControllerTests
     {
         // Arrange
         var bookingId = Guid.NewGuid();
-        var booking = new Booking
+        var booking = new BookingInfo
         {
             Id = bookingId,
             EventId = Guid.NewGuid(),
@@ -43,7 +44,7 @@ public class BookingsControllerTests
 
         // Assert
         var okResult = actionResult.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var returnedBooking = okResult.Value.Should().BeOfType<Booking>().Subject;
+        var returnedBooking = okResult.Value.Should().BeOfType<BookingInfo>().Subject;
         
         returnedBooking.Id.Should().Be(bookingId);
         returnedBooking.EventId.Should().Be(booking.EventId);
