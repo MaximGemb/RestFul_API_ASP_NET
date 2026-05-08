@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using RestFulApi.DataAccess;
 using RestFulApi.DTOs;
 using RestFulApi.Exceptions;
 using RestFulApi.Interfaces;
@@ -8,20 +6,23 @@ using RestFulApi.Models;
 namespace RestFulApi.Services;
 
 /// <summary>
-/// Сервис для работы с бронированиями через базу данных.
+/// Сервис для работы с бронированиями через репозитории.
 /// </summary>
 internal class BookingService : IBookingService
 {
     private static readonly SemaphoreSlim BookingLock = new(1, 1);
-    private readonly AppDbContext _context;
+    private readonly IEventRepository _eventRepository;
+    private readonly IBookingRepository _bookingRepository;
 
     /// <summary>
     /// Инициализирует новый экземпляр класса <see cref="BookingService"/>.
     /// </summary>
-    /// <param name="context">Контекст базы данных.</param>
-    public BookingService(AppDbContext context)
+    /// <param name="eventRepository">Репозиторий событий.</param>
+    /// <param name="bookingRepository">Репозиторий бронирований.</param>
+    public BookingService(IEventRepository eventRepository, IBookingRepository bookingRepository)
     {
-        _context = context;
+        _eventRepository = eventRepository;
+        _bookingRepository = bookingRepository;
     }
 
     /// <summary>
@@ -35,14 +36,14 @@ internal class BookingService : IBookingService
         await BookingLock.WaitAsync(ct);
         try
         {
-            var @event = await _context.Events.FirstOrDefaultAsync(e => e.Id == eventId, ct)
+            var @event = await _eventRepository.FindByIdAsync(eventId, ct)
                          ?? throw new NotFoundException(eventId, $"Событие с идентификатором {eventId} не найдено.");
 
             @event.TryReserveSeats();
 
             var newBooking = Booking.CreatePending(eventId);
-            await _context.Bookings.AddAsync(newBooking, ct);
-            await _context.SaveChangesAsync(ct);
+            await _bookingRepository.AddAsync(newBooking, ct);
+            await _bookingRepository.SaveChangesAsync(ct);
 
             return ToInfo(newBooking);
         }
@@ -60,7 +61,7 @@ internal class BookingService : IBookingService
     /// <returns>Информация о найденном бронировании.</returns>
     public async Task<BookingInfo> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default)
     {
-        var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId, ct)
+        var booking = await _bookingRepository.FindByIdAsync(bookingId, ct)
                       ?? throw new NotFoundException(bookingId, $"Бронь с идентификатором {bookingId} не найдена.");
 
         return ToInfo(booking);

@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using RestFulApi.DataAccess;
 using RestFulApi.DTOs;
 using RestFulApi.Exceptions;
 using RestFulApi.Interfaces;
@@ -8,19 +6,19 @@ using RestFulApi.Models;
 namespace RestFulApi.Services;
 
 /// <summary>
-/// Сервис для работы с событиями через базу данных.
+/// Сервис для работы с событиями через репозиторий.
 /// </summary>
 internal class EventService : IEventService
 {
-    private readonly AppDbContext _context;
+    private readonly IEventRepository _eventRepository;
 
     /// <summary>
     /// Инициализирует новый экземпляр класса <see cref="EventService"/>.
     /// </summary>
-    /// <param name="context">Контекст базы данных.</param>
-    public EventService(AppDbContext context)
+    /// <param name="eventRepository">Репозиторий событий.</param>
+    public EventService(IEventRepository eventRepository)
     {
-        _context = context;
+        _eventRepository = eventRepository;
     }
 
     /// <summary>
@@ -40,24 +38,7 @@ internal class EventService : IEventService
         int page = 1,
         int pageSize = 10, CancellationToken ct = default)
     {
-        var query = _context.Events.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(title))
-            query = query.Where(e => e.Title.ToLower().Contains(title.ToLower()));
-
-        if (from.HasValue)
-            query = query.Where(e => e.StartAt >= from.Value);
-
-        if (to.HasValue)
-            query = query.Where(e => e.EndAt <= to.Value);
-
-        var totalCount = await query.CountAsync(ct);
-
-        var items = await query
-            .OrderByDescending(e => e.StartAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(ct);
+        var (items, totalCount) = await _eventRepository.GetPagedAsync(title, from, to, page, pageSize, ct);
 
         return new PaginatedResult<EventInfo>
         {
@@ -76,7 +57,7 @@ internal class EventService : IEventService
     /// <returns>Информация о найденном событии.</returns>
     public async Task<EventInfo> GetEventByIdAsync(Guid id, CancellationToken ct = default)
     {
-        var @event = await _context.Events.FirstOrDefaultAsync(e => e.Id == id, ct)
+        var @event = await _eventRepository.FindByIdAsync(id, ct)
                      ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
 
         return ToInfo(@event);
@@ -90,7 +71,7 @@ internal class EventService : IEventService
     /// <returns>Сущность события.</returns>
     public async Task<Event> GetEventEntityByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.Events.FirstOrDefaultAsync(e => e.Id == id, ct)
+        return await _eventRepository.FindByIdAsync(id, ct)
                ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
     }
 
@@ -105,8 +86,8 @@ internal class EventService : IEventService
         var @event = Event.Create(item.Title, item.StartAt, item.EndAt, item.TotalSeats,
             item.Description);
 
-        await _context.Events.AddAsync(@event, ct);
-        await _context.SaveChangesAsync(ct);
+        await _eventRepository.AddAsync(@event, ct);
+        await _eventRepository.SaveChangesAsync(ct);
         return ToInfo(@event);
     }
 
@@ -119,12 +100,12 @@ internal class EventService : IEventService
     /// <returns>Информация об обновленном событии.</returns>
     public async Task<EventInfo> UpdateEventAsync(Guid id, UpdateEvent item, CancellationToken ct = default)
     {
-        var @event = await _context.Events.FirstOrDefaultAsync(e => e.Id == id, ct)
+        var @event = await _eventRepository.FindByIdAsync(id, ct)
                      ?? throw new NotFoundException(id, $"Can't update event with id {id}. Event not found");
 
         @event.Update(item.Title, item.StartAt, item.EndAt, item.Description);
 
-        await _context.SaveChangesAsync(ct);
+        await _eventRepository.SaveChangesAsync(ct);
         return ToInfo(@event);
     }
 
@@ -136,11 +117,11 @@ internal class EventService : IEventService
     /// <returns>Задача, представляющая завершение операции удаления.</returns>
     public async Task DeleteEventAsync(Guid id, CancellationToken ct = default)
     {
-        var @event = await _context.Events.FirstOrDefaultAsync(e => e.Id == id, ct)
+        var @event = await _eventRepository.FindByIdAsync(id, ct)
                      ?? throw new NotFoundException(id, $"Can't delete event with id {id}. Event not found");
 
-        _context.Events.Remove(@event);
-        await _context.SaveChangesAsync(ct);
+        _eventRepository.Remove(@event);
+        await _eventRepository.SaveChangesAsync(ct);
     }
 
     /// <summary>

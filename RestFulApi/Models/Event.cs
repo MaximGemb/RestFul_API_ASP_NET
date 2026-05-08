@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using RestFulApi.Exceptions;
+﻿using RestFulApi.Exceptions;
 
 namespace RestFulApi.Models;
 
