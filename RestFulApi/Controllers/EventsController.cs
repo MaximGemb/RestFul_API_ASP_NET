@@ -8,6 +8,8 @@ namespace RestFulApi.Controllers;
 /// <summary>
 /// Контроллер для управления событиями.
 /// </summary>
+/// <param name="eventService">Сервис для работы с событиями.</param>
+/// <param name="bookingService">Сервис для работы с бронированиями.</param>
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]

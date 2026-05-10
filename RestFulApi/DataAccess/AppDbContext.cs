@@ -6,6 +6,7 @@ namespace RestFulApi.DataAccess;
 /// <summary>
 /// Контекст базы данных приложения. Предоставляет доступ к таблицам событий и бронирований.
 /// </summary>
+/// <param name="options">Параметры конфигурации контекста базы данных.</param>
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     /// <summary>

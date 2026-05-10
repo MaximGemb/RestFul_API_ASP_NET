@@ -20,11 +20,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Services\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <InternalsVisibleTo Include="RestFulApi.Tests" />
+      <InternalsVisibleTo Include="RestFulApi.IntegrationTests" />
     </ItemGroup>
 
 </Project>

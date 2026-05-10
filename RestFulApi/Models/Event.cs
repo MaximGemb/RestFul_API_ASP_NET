@@ -7,12 +7,18 @@ namespace RestFulApi.Models;
 /// </summary>
 public sealed class Event
 {
+    /// <summary>
+    /// Конструктор по умолчанию для Entity Framework.
+    /// </summary>
     // ReSharper disable once UnusedMember.Local
     internal Event()
     {
         Title = null!;
     }
 
+    /// <summary>
+    /// Инициализирует новый экземпляр события с заданными параметрами.
+    /// </summary>
     private Event(
         Guid id,
         string title,
@@ -142,6 +148,13 @@ public sealed class Event
     public void ReleaseSeats(int count = 1) =>
         AvailableSeats = Math.Min(TotalSeats, AvailableSeats + count);
 
+    /// <summary>
+    /// Валидирует входные параметры события и выбрасывает исключение в случае ошибки.
+    /// </summary>
+    /// <param name="title">Название события.</param>
+    /// <param name="startAt">Дата начала события.</param>
+    /// <param name="endAt">Дата окончания события.</param>
+    /// <param name="totalSeats">Общее количество мест.</param>
     private static void ThrowIfNotValid(
         string? title,
         DateTime? startAt,
@@ -171,6 +184,12 @@ public sealed class Event
             throw new CustomValidationException(errors);
     }
 
+    /// <summary>
+    /// Добавляет сообщение об ошибке в словарь ошибок.
+    /// </summary>
+    /// <param name="errors">Словарь ошибок.</param>
+    /// <param name="field">Название поля с ошибкой.</param>
+    /// <param name="message">Сообщение об ошибке.</param>
     private static void AddError(Dictionary<string, ICollection<string>> errors, string field, string message)
     {
         if (!errors.ContainsKey(field))

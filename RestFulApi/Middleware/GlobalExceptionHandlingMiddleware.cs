@@ -9,6 +9,8 @@ namespace RestFulApi.Middleware;
 /// Перехватывает все необработанные исключения и возвращает единообразный JSON-ответ
 /// в формате Problem Details (RFC 7807).
 /// </summary>
+/// <param name="next">Делегат следующего middleware в конвейере.</param>
+/// <param name="logger">Логгер для записи ошибок.</param>
 public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlingMiddleware> logger)
 {
     /// <summary>
@@ -27,6 +29,11 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
         }
     }
 
+    /// <summary>
+    /// Обрабатывает пойманное исключение, формирует и отправляет ответ в формате Problem Details.
+    /// </summary>
+    /// <param name="httpContext">Контекст HTTP-запроса.</param>
+    /// <param name="ex">Пойманное исключение.</param>
     private async Task HandleExceptionAsync(HttpContext httpContext, Exception ex)
     {
         if (ex is OperationCanceledException)
@@ -81,6 +88,11 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
         await httpContext.Response.WriteAsJsonAsync(problemDetails);
     }
 
+    /// <summary>
+    /// Маппит исключение на соответствующий HTTP статус-код и заголовок.
+    /// </summary>
+    /// <param name="ex">Исключение для маппинга.</param>
+    /// <returns>Кортеж из статус-кода и заголовка.</returns>
     private static (int statusCode, string title) MapStatusCode(Exception ex)
         => ex switch
         {

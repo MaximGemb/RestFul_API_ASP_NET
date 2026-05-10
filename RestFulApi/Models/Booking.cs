@@ -10,11 +10,17 @@ namespace RestFulApi.Models;
 [SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
 public sealed class Booking
 {
+    /// <summary>
+    /// Конструктор по умолчанию для Entity Framework.
+    /// </summary>
     // ReSharper disable once UnusedMember.Local
     private Booking()
     {
     }
 
+    /// <summary>
+    /// Инициализирует новый экземпляр брони с заданными параметрами.
+    /// </summary>
     private Booking(
         Guid id,
         Guid eventId,
