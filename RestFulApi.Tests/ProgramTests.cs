@@ -84,6 +84,16 @@ public class ProgramTests(TestWebApplicationFactory factory) : IClassFixture<Tes
     }
 
     [Fact]
+    public void Program_OnStartup_ShouldCallMigrationRunner_WithoutThrowing()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        db.Database.IsRelational().Should().BeFalse(
+            "TestWebApplicationFactory uses InMemory DB, so MigrateIfRelational must skip Migrate()");
+    }
+
+    [Fact]
     public void Program_ShouldRegisterAppDbContext_AsScoped()
     {
         // Act

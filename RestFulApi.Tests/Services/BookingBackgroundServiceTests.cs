@@ -314,6 +314,8 @@ public class BookingBackgroundServiceTests
         var dbName = $"BgTests_{Guid.NewGuid()}";
         var services = new ServiceCollection();
         services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(dbName));
+        services.AddScoped<RestFulApi.Interfaces.IEventRepository, RestFulApi.DataAccess.Repositories.EventRepository>();
+        services.AddScoped<RestFulApi.Interfaces.IBookingRepository, RestFulApi.DataAccess.Repositories.BookingRepository>();
         return services.BuildServiceProvider();
     }
 
