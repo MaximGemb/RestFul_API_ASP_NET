@@ -7,7 +7,7 @@ namespace RestFulApi.DataAccess.Repositories;
 /// <summary>
 /// Репозиторий для работы с событиями через <see cref="AppDbContext"/>.
 /// </summary>
-internal class EventRepository : IEventRepository
+public class EventRepository : IEventRepository
 {
     private readonly AppDbContext _context;
 

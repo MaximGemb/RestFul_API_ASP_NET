@@ -5,7 +5,7 @@ namespace RestFulApi.Models;
 /// <summary>
 /// Представляет событие, хранимое в системе.
 /// </summary>
-internal sealed class Event
+public sealed class Event
 {
     // ReSharper disable once UnusedMember.Local
     internal Event()
@@ -84,7 +84,7 @@ internal sealed class Event
     /// <param name="location">Место проведения события.</param>
     /// <returns>Новый экземпляр <see cref="Event"/>.</returns>
     /// <exception cref="Exceptions.CustomValidationException">Выбрасывается, если входные данные не прошли валидацию.</exception>
-    internal static Event Create(
+    public static Event Create(
         string? title,
         DateTime? startAt,
         DateTime? endAt,
@@ -107,7 +107,7 @@ internal sealed class Event
     /// <param name="description">Новое описание события.</param>
     /// <param name="location">Новое место проведения события.</param>
     /// <exception cref="Exceptions.CustomValidationException">Выбрасывается, если входные данные не прошли валидацию.</exception>
-    internal void Update(
+    public void Update(
         string? title,
         DateTime? startAt,
         DateTime? endAt,

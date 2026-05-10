@@ -7,7 +7,7 @@ namespace RestFulApi.DataAccess.Repositories;
 /// <summary>
 /// Репозиторий для работы с бронированиями через <see cref="AppDbContext"/>.
 /// </summary>
-internal class BookingRepository : IBookingRepository
+public class BookingRepository : IBookingRepository
 {
     private readonly AppDbContext _context;
 
