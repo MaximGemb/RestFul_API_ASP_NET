@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Application;
 using Infrastructure;
 using Infrastructure.DataAccess;
+using Presentation.Extensions;
 using Presentation.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,7 @@ builder.Services.AddControllers()
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddInfrastructureServices(connectionString);
+builder.Services.AddApplicationServices();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

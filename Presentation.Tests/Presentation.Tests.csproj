@@ -11,6 +11,7 @@
     <ItemGroup>
         <PackageReference Include="coverlet.collector" Version="6.0.4"/>
         <PackageReference Include="FluentAssertions" Version="7.2.2"/>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.3"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.7"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1"/>
         <PackageReference Include="Moq" Version="4.20.72"/>
@@ -22,8 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Application\Application.csproj"/>
-        <ProjectReference Include="..\Infrastructure\Infrastructure.csproj"/>
+        <ProjectReference Include="..\Presentation\Presentation.csproj"/>
     </ItemGroup>
 
 </Project>

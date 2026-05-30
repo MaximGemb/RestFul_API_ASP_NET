@@ -1,11 +1,9 @@
 using Application.Interfaces;
-using Application.Services;
 using Infrastructure.DataAccess;
 using Infrastructure.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace Infrastructure;
+namespace Presentation.Extensions;
 
 /// <summary>
 /// Регистрация зависимостей инфраструктурного слоя.
@@ -13,7 +11,7 @@ namespace Infrastructure;
 public static class InfrastructureServiceRegistration
 {
     /// <summary>
-    /// Регистрирует DbContext, репозитории и прочие инфраструктурные зависимости.
+    /// Регистрирует DbContext и репозитории инфраструктурного слоя.
     /// </summary>
     /// <param name="services">Коллекция сервисов.</param>
     /// <param name="connectionString">Строка подключения к базе данных.</param>
@@ -25,10 +23,6 @@ public static class InfrastructureServiceRegistration
 
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
-        
-        services.AddScoped<IEventService, EventService>();
-        services.AddScoped<IBookingService, BookingService>();
-        services.AddHostedService<BookingBackgroundService>();
 
         return services;
     }

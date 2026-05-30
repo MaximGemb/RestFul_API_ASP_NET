@@ -8,7 +8,7 @@ using Application.Interfaces;
 using Domain.Entities;
 using Xunit;
 
-namespace Application.Tests.Controllers;
+namespace Presentation.Tests.Controllers;
 
 public class BookingsControllerTests
 {

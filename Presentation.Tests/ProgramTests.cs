@@ -20,7 +20,7 @@ using Application.Interfaces;
 using Application.Services;
 using Xunit;
 
-namespace Application.Tests;
+namespace Presentation.Tests;
 
 public class ProgramTests(TestWebApplicationFactory factory) : IClassFixture<TestWebApplicationFactory>
 {

@@ -4,5 +4,6 @@
   <Project Path="Infrastructure/Infrastructure.csproj" />
   <Project Path="Presentation/Presentation.csproj" />
   <Project Path="Application.Tests/Application.Tests.csproj" />
+  <Project Path="Presentation.Tests/Presentation.Tests.csproj" />
   <Project Path="Infrastructure.IntegrationTests/Infrastructure.IntegrationTests.csproj" />
 </Solution>

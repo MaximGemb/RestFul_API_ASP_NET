@@ -8,7 +8,7 @@ using Presentation.Middleware;
 using Xunit;
 using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;
 
-namespace Application.Tests.Middleware;
+namespace Presentation.Tests.Middleware;
 
 public class GlobalExceptionHandlingMiddlewareTests
 {
