@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
 
-namespace RestFulApi.DataAccess.Configurations;
+namespace Infrastructure.DataAccess.Configurations;
 
 /// <summary>
 /// Конфигурация сущности <see cref="Booking"/> для Entity Framework Core.

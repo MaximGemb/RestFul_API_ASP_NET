@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace RestFulApi.DataAccess;
+namespace Infrastructure.DataAccess;
 
 /// <summary>
 /// Утилита для выполнения миграций базы данных.

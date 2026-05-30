@@ -1,10 +1,8 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Application;
-using Application.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using RestFulApi.DataAccess;
-using RestFulApi.DataAccess.Repositories;
+using Infrastructure;
+using Infrastructure.DataAccess;
 using RestFulApi.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,10 +13,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<AppDbContext>(opt => { opt.UseNpgsql(connectionString); });
-
-builder.Services.AddScoped<IEventRepository, EventRepository>();
-builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddInfrastructureServices(connectionString);
 
 // Регистрация сервисов и фонового сервиса слоя Application
 builder.Services.AddApplicationServices();

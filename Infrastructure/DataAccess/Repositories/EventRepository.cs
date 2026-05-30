@@ -2,7 +2,7 @@ using Application.Interfaces;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace RestFulApi.DataAccess.Repositories;
+namespace Infrastructure.DataAccess.Repositories;
 
 /// <summary>
 /// Репозиторий для работы с событиями через <see cref="AppDbContext"/>.

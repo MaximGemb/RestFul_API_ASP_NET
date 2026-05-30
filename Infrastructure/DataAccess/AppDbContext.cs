@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
 
-namespace RestFulApi.DataAccess;
+namespace Infrastructure.DataAccess;
 
 /// <summary>
 /// Контекст базы данных приложения. Предоставляет доступ к таблицам событий и бронирований.
