@@ -1,7 +1,7 @@
 using RestFulApi.DTOs;
-using RestFulApi.Exceptions;
+using Domain.Exceptions;
 using RestFulApi.Interfaces;
-using RestFulApi.Models;
+using Domain.Entities;
 
 namespace RestFulApi.Services;
 

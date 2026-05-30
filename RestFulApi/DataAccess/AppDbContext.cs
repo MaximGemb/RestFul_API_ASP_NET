@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using RestFulApi.Models;
+using Domain.Entities;
 
 namespace RestFulApi.DataAccess;
 

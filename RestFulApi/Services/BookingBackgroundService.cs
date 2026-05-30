@@ -1,5 +1,5 @@
 using RestFulApi.Interfaces;
-using RestFulApi.Models;
+using Domain.Entities;
 
 namespace RestFulApi.Services;
 

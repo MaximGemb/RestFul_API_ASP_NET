@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using RestFulApi.Models;
+using Domain.Entities;
 
 namespace RestFulApi.DataAccess.Configurations;
 

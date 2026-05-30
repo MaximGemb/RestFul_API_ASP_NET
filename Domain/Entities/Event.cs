@@ -1,6 +1,6 @@
-﻿using RestFulApi.Exceptions;
+using Domain.Exceptions;
 
-namespace RestFulApi.Models;
+namespace Domain.Entities;
 
 /// <summary>
 /// Представляет событие, хранимое в системе.
@@ -89,7 +89,7 @@ public sealed class Event
     /// <param name="description">Описание события.</param>
     /// <param name="location">Место проведения события.</param>
     /// <returns>Новый экземпляр <see cref="Event"/>.</returns>
-    /// <exception cref="Exceptions.CustomValidationException">Выбрасывается, если входные данные не прошли валидацию.</exception>
+    /// <exception cref="CustomValidationException">Выбрасывается, если входные данные не прошли валидацию.</exception>
     public static Event Create(
         string? title,
         DateTime? startAt,
@@ -112,7 +112,7 @@ public sealed class Event
     /// <param name="endAt">Новая дата и время окончания.</param>
     /// <param name="description">Новое описание события.</param>
     /// <param name="location">Новое место проведения события.</param>
-    /// <exception cref="Exceptions.CustomValidationException">Выбрасывается, если входные данные не прошли валидацию.</exception>
+    /// <exception cref="CustomValidationException">Выбрасывается, если входные данные не прошли валидацию.</exception>
     public void Update(
         string? title,
         DateTime? startAt,

@@ -1,4 +1,4 @@
-namespace RestFulApi.Models;
+namespace Domain.Entities;
 
 /// <summary>
 /// Представляет статус бронирования.

@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
-using RestFulApi.Exceptions;
+using Domain.Exceptions;
 
-namespace RestFulApi.Models;
+namespace Domain.Entities;
 
 /// <summary>
 /// Представляет бронь на событие.
@@ -72,7 +72,7 @@ public sealed class Booking
     /// </summary>
     /// <param name="eventId">Идентификатор события.</param>
     /// <returns>Новый экземпляр брони.</returns>
-    /// <exception cref="Exceptions.NotFoundException">Выбрасывается, если передан пустой идентификатор события.</exception>
+    /// <exception cref="NotFoundException">Выбрасывается, если передан пустой идентификатор события.</exception>
     public static Booking CreatePending(Guid eventId)
     {
         return eventId == Guid.Empty

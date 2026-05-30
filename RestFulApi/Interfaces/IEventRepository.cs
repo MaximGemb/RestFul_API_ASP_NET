@@ -1,4 +1,4 @@
-using RestFulApi.Models;
+using Domain.Entities;
 
 namespace RestFulApi.Interfaces;
 

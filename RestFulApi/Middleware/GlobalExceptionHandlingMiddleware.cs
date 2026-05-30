@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
-using RestFulApi.Exceptions;
+using Domain.Exceptions;
 
 namespace RestFulApi.Middleware;
 
