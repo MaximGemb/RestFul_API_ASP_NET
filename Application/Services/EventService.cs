@@ -8,7 +8,7 @@ namespace Application.Services;
 /// <summary>
 /// Сервис для работы с событиями через репозиторий.
 /// </summary>
-internal class EventService : IEventService
+public class EventService : IEventService
 {
     private readonly IEventRepository _eventRepository;
 

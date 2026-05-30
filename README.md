@@ -28,14 +28,9 @@
    cd RestFul_API_ASP_NET
    ```
 
-2. **Перейдите в директорию проекта:**
-   ```sh
-   cd RestFulApi
-   ```
+2. **Настройте строку подключения к PostgreSQL:**
 
-3. **Настройте строку подключения к PostgreSQL:**
-
-   Откройте файл `appsettings.json` и задайте параметры подключения к вашей БД:
+   Откройте файл `Presentation/appsettings.json` и задайте параметры подключения к вашей БД:
    ```json
    "ConnectionStrings": {
      "DefaultConnection": "Host=localhost;Port=5432;Database=eventapi;Username=postgres;Password=ваш_пароль"
@@ -43,49 +38,59 @@
    ```
    Параметры по умолчанию: хост `localhost`, порт `5432`, база данных `eventapi`, пользователь `postgres`.
 
-   > **Важно:** схема базы данных управляется **миграциями EF Core**. При запуске приложения они применяются автоматически через `DatabaseMigrationRunner.MigrateIfRelational`.
+   > **Важно:** схема базы данных управляется **миграциями EF Core** (файлы в `Infrastructure/Migrations/`). При запуске приложения они применяются автоматически через `DatabaseMigrationRunner.MigrateIfRelational`.
 
-4. **Восстановите зависимости:**
+3. **Восстановите зависимости:**
    ```sh
    dotnet restore
    ```
 
-5. **Соберите проект:**
+4. **Соберите проект:**
    ```sh
    dotnet build
    ```
 
-6. **Запустите приложение:**
+5. **Запустите приложение:**
    ```sh
-   dotnet run
+   dotnet run --project Presentation
    ```
-   После запуска API будет доступно по адресу `https://localhost:<port>` и `http://localhost:<port>`, где `<port>` — это случайно сгенерированный порт, указанный в консоли.
+   После запуска API будет доступно по адресу `https://localhost:<port>` и `http://localhost:<port>`, где `<port>` — это порт, указанный в консоли.
 
 ## Управление миграциями EF Core
 
-Схема БД версионируется миграциями EF Core (файлы находятся в `RestFulApi/Migrations/`). При старте приложения все непримененные миграции применяются автоматически через `DatabaseMigrationRunner.MigrateIfRelational`.
+Схема БД версионируется миграциями EF Core (файлы находятся в `Infrastructure/Migrations/`). При старте приложения все непримененные миграции применяются автоматически через `DatabaseMigrationRunner.MigrateIfRelational`.
 
 > Для работы команд `dotnet ef` необходимо установить инструмент:
 > ```sh
 > dotnet tool install --global dotnet-ef
 > ```
 
+Поскольку `AppDbContext` объявлен в проекте **Infrastructure**, а точка входа находится в проекте **Presentation**, все команды EF Core требуют явного указания обоих флагов:
+- `--project Infrastructure` — проект, содержащий `AppDbContext` и папку `Migrations/`.
+- `--startup-project Presentation` — стартовый проект, откуда читается строка подключения (`appsettings.json`).
+
 ### Создание новой миграции
 
 ```sh
-dotnet ef migrations add <НазваниеМиграции> --project RestFulApi
+dotnet ef migrations add <НазваниеМиграции> --project Infrastructure --startup-project Presentation
 ```
 
 ### Применение миграций вручную
 
 ```sh
-dotnet ef database update --project RestFulApi
+dotnet ef database update --project Infrastructure --startup-project Presentation
 ```
 
 ### Откат до конкретной миграции
 
 ```sh
-dotnet ef database update <НазваниеЦелевойМиграции> --project RestFulApi
+dotnet ef database update <НазваниеЦелевойМиграции> --project Infrastructure --startup-project Presentation
+```
+
+### Удаление последней непримененной миграции
+
+```sh
+dotnet ef migrations remove --project Infrastructure --startup-project Presentation
 ```
 
 ## Документация API
@@ -313,29 +318,99 @@ dotnet test
 Для запуска только модульных тестов:
 
 ```sh
-dotnet test .\RestFulApi.Tests\RestFulApi.Tests.csproj
+dotnet test .\Application.Tests\Application.Tests.csproj
 ```
 
 Для запуска только интеграционных тестов:
 
 ```sh
-dotnet test .\RestFulApi.IntegrationTests\RestFulApi.IntegrationTests.csproj
+dotnet test .\Infrastructure.IntegrationTests\Infrastructure.IntegrationTests.csproj
 ```
 
-> **InMemory-провайдер в модульных тестах:** тестовый проект (`RestFulApi.Tests`) использует пакет `Microsoft.EntityFrameworkCore.InMemory`. `AppDbContext` конфигурируется с in-memory базой данных, что позволяет запускать тесты без реального PostgreSQL-сервера.
+> **InMemory-провайдер в модульных тестах:** проект `Application.Tests` использует пакет `Microsoft.EntityFrameworkCore.InMemory`. `AppDbContext` конфигурируется с in-memory базой данных, что позволяет запускать тесты без реального PostgreSQL-сервера.
 
-> **Интеграционные тесты (`RestFulApi.IntegrationTests`) требуют Docker.** Они используют пакет `Testcontainers.PostgreSql`, который автоматически поднимает контейнер `postgres:16-alpine` перед каждым тестовым классом и удаляет его после завершения. Перед запуском убедитесь, что Docker Desktop (или Docker Engine) запущен на вашей машине.
+> **Интеграционные тесты (`Infrastructure.IntegrationTests`) требуют Docker.** Они используют пакет `Testcontainers.PostgreSql`, который автоматически поднимает контейнер `postgres:16-alpine` перед каждым тестовым классом и удаляет его после завершения. Перед запуском убедитесь, что Docker Desktop (или Docker Engine) запущен на вашей машине.
 
 ## Структура проекта
 
-Проект имеет следующую структуру, основанную на принципах разделения ответственности:
+Проект реализует **Clean Architecture** с разделением на четыре основных слоя и два тестовых проекта. Зависимости направлены строго внутрь: `Presentation` → `Application` → `Domain`; `Infrastructure` реализует интерфейсы `Application`.
 
-- `Controllers/`: Содержит контроллеры API, которые обрабатывают входящие HTTP-запросы.
-- `Services/`: Бизнес-логика приложения (`EventService`, `BookingService`, `BookingBackgroundService`).
-- `Interfaces/`: Определяет контракты (интерфейсы) для сервисов, что способствует слабой связанности компонентов.
-- `DataAccess/`: `AppDbContext` и конфигурации сущностей EF Core (`Configurations/`).
-- `Models/`: Модели данных, используемые в приложении.
-- `DTOs/`: Data Transfer Objects, используемые для передачи данных между клиентом и сервером.
-- `Middleware/`: Глобальная обработка исключений (`GlobalExceptionHandlingMiddleware`).
-- `Program.cs`: Точка входа в приложение, где конфигурируются сервисы и middleware.
-- `RestFulApi.csproj`: Файл проекта, содержащий информацию о зависимостях и настройках сборки.
+```
+RestFul_API_ASP_NET/
+├── Domain/                          # Слой домена (ядро)
+│   ├── Entities/
+│   │   ├── Event.cs                 # Сущность события
+│   │   ├── Booking.cs               # Сущность бронирования
+│   │   └── BookingStatus.cs         # Перечисление статусов брони
+│   └── Exceptions/
+│       ├── NotFoundException.cs     # Исключение «не найдено» (→ 404)
+│       ├── NoAvailableSeatsException.cs  # Нет свободных мест (→ 409)
+│       └── CustomValidationException.cs # Ошибка валидации (→ 400)
+│
+├── Application/                     # Слой приложения (бизнес-логика)
+│   ├── Interfaces/
+│   │   ├── IEventService.cs         # Контракт сервиса событий
+│   │   ├── IBookingService.cs       # Контракт сервиса бронирований
+│   │   ├── IEventRepository.cs      # Контракт репозитория событий
+│   │   └── IBookingRepository.cs    # Контракт репозитория бронирований
+│   ├── Services/
+│   │   ├── EventService.cs          # Логика работы с событиями
+│   │   ├── BookingService.cs        # Логика создания/проверки брони
+│   │   └── BookingBackgroundService.cs  # Фоновая обработка pending-броней
+│   ├── DTOs/
+│   │   ├── EventInfo.cs             # Ответ с данными события
+│   │   ├── CreateEvent.cs           # Запрос на создание события
+│   │   ├── UpdateEvent.cs           # Запрос на обновление события
+│   │   ├── BookingInfo.cs           # Ответ с данными бронирования
+│   │   ├── PaginatedResult.cs       # Обёртка для пагинированного ответа
+│   │   └── PaginationRequest.cs     # Параметры пагинации
+│   └── DependencyInjection.cs       # Регистрация сервисов слоя Application
+│
+├── Infrastructure/                  # Инфраструктурный слой (реализация)
+│   ├── DataAccess/
+│   │   ├── AppDbContext.cs          # Контекст EF Core
+│   │   ├── DatabaseMigrationRunner.cs  # Автоматическое применение миграций
+│   │   ├── Configurations/
+│   │   │   ├── EventConfiguration.cs   # Конфигурация таблицы Events
+│   │   │   └── BookingConfiguration.cs # Конфигурация таблицы Bookings
+│   │   └── Repositories/
+│   │       ├── EventRepository.cs   # Реализация IEventRepository
+│   │       └── BookingRepository.cs # Реализация IBookingRepository
+│   ├── Migrations/                  # Файлы миграций EF Core
+│   └── InfrastructureServiceRegistration.cs  # Регистрация DbContext и репозиториев
+│
+├── Presentation/                    # Слой представления (точка входа)
+│   ├── Controllers/
+│   │   ├── EventsController.cs      # Эндпоинты /api/events
+│   │   └── BookingsController.cs    # Эндпоинт GET /api/bookings/{id}
+│   ├── Middleware/
+│   │   └── GlobalExceptionHandlingMiddleware.cs  # Глобальный обработчик исключений
+│   ├── Program.cs                   # Настройка DI, middleware и запуск приложения
+│   ├── appsettings.json             # Конфигурация (строка подключения и др.)
+│   └── appsettings.Development.json # Конфигурация для среды разработки
+│
+├── Application.Tests/               # Модульные тесты (xUnit + Moq)
+│   ├── Controllers/                 # Тесты контроллеров
+│   ├── Services/                    # Тесты сервисов (EventService, BookingService, фоновый)
+│   ├── Middleware/                  # Тесты GlobalExceptionHandlingMiddleware
+│   ├── DTOs/                        # Тесты DTO-валидации
+│   ├── Exceptions/                  # Тесты доменных исключений
+│   ├── Models/                      # Тесты доменных моделей
+│   ├── DatabaseMigrationRunnerTests.cs
+│   └── ProgramTests.cs              # Тесты конфигурации приложения
+│
+├── Infrastructure.IntegrationTests/ # Интеграционные тесты (Testcontainers)
+│   ├── EventRepositoryTests.cs      # Тесты репозитория событий с реальной БД
+│   └── BookingRepositoryTests.cs    # Тесты репозитория бронирований с реальной БД
+│
+└── RestFulApi/                      # (устаревший монолитный проект, сохранён для истории)
+```
+
+### Назначение слоёв
+
+- **Domain** — содержит только бизнес-сущности и доменные исключения. Не зависит ни от одного другого проекта в решении.
+- **Application** — оркестрирует бизнес-логику через сервисы. Определяет интерфейсы репозиториев и сервисов (контракты), которые реализуются в других слоях. Зависит только от `Domain`.
+- **Infrastructure** — реализует интерфейсы из `Application`: `AppDbContext`, репозитории, `DatabaseMigrationRunner`. Зависит от `Application` и `Domain`. Именно здесь хранятся миграции EF Core.
+- **Presentation** — HTTP-слой: контроллеры, middleware, `Program.cs`. Компонует все слои через DI, вызывая `AddApplicationServices()` и `AddInfrastructureServices()`. Зависит от `Application` и `Infrastructure`.
+- **Application.Tests** — модульные тесты с замоканными зависимостями (без реальной БД и HTTP-сервера).
+- **Infrastructure.IntegrationTests** — интеграционные тесты репозиториев с реальным PostgreSQL через Testcontainers (требуют Docker).

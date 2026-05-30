@@ -15,9 +15,6 @@ builder.Services.AddControllers()
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddInfrastructureServices(connectionString);
 
-// Регистрация сервисов и фонового сервиса слоя Application
-builder.Services.AddApplicationServices();
-
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(options =>
@@ -51,7 +48,3 @@ app.UseHttpsRedirection();
 app.MapControllers();
 
 app.Run();
-
-#pragma warning disable CS1591
-public partial class Program { }
-#pragma warning restore CS1591

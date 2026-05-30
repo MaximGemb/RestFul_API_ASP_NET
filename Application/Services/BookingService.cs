@@ -8,7 +8,7 @@ namespace Application.Services;
 /// <summary>
 /// Сервис для работы с бронированиями через репозитории.
 /// </summary>
-internal class BookingService : IBookingService
+public class BookingService : IBookingService
 {
     private static readonly SemaphoreSlim BookingLock = new(1, 1);
     private readonly IEventRepository _eventRepository;

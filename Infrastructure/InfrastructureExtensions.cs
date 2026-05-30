@@ -1,4 +1,5 @@
 using Application.Interfaces;
+using Application.Services;
 using Infrastructure.DataAccess;
 using Infrastructure.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,10 @@ public static class InfrastructureServiceRegistration
 
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
+        
+        services.AddScoped<IEventService, EventService>();
+        services.AddScoped<IBookingService, BookingService>();
+        services.AddHostedService<BookingBackgroundService>();
 
         return services;
     }
