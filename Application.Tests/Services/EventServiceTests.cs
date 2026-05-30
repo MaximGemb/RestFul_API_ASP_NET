@@ -1,14 +1,14 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using RestFulApi.DataAccess;
-using RestFulApi.DTOs;
-using RestFulApi.Exceptions;
-using RestFulApi.Interfaces;
-using RestFulApi.Services;
+using Infrastructure.DataAccess;
+using Application.DTOs;
+using Domain.Exceptions;
+using Application.Interfaces;
+using Application.Services;
 using Xunit;
 
-namespace RestFulApi.Tests.Services;
+namespace Application.Tests.Services;
 
 public class EventServiceTests : IDisposable
 {
@@ -19,7 +19,7 @@ public class EventServiceTests : IDisposable
         var dbName = Guid.NewGuid().ToString();
         var services = new ServiceCollection();
         services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(dbName));
-        services.AddScoped<IEventRepository, RestFulApi.DataAccess.Repositories.EventRepository>();
+        services.AddScoped<IEventRepository, Infrastructure.DataAccess.Repositories.EventRepository>();
         services.AddScoped<IEventService, EventService>();
         _serviceProvider = services.BuildServiceProvider();
     }

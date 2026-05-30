@@ -1,7 +1,7 @@
-using RestFulApi.Exceptions;
+using Domain.Exceptions;
 using Xunit;
 
-namespace RestFulApi.Tests.Exceptions;
+namespace Application.Tests.Exceptions;
 
 public class CustomValidationExceptionTests
 {

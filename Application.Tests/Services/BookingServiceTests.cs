@@ -1,14 +1,14 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using RestFulApi.DataAccess;
-using RestFulApi.Exceptions;
-using RestFulApi.Interfaces;
-using RestFulApi.Models;
-using RestFulApi.Services;
+using Infrastructure.DataAccess;
+using Domain.Exceptions;
+using Application.Interfaces;
+using Domain.Entities;
+using Application.Services;
 using Xunit;
 
-namespace RestFulApi.Tests.Services;
+namespace Application.Tests.Services;
 
 public class BookingServiceTests : IDisposable
 {
@@ -19,8 +19,8 @@ public class BookingServiceTests : IDisposable
         var dbName = Guid.NewGuid().ToString();
         var services = new ServiceCollection();
         services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(dbName));
-        services.AddScoped<IEventRepository, RestFulApi.DataAccess.Repositories.EventRepository>();
-        services.AddScoped<IBookingRepository, RestFulApi.DataAccess.Repositories.BookingRepository>();
+        services.AddScoped<IEventRepository, Infrastructure.DataAccess.Repositories.EventRepository>();
+        services.AddScoped<IBookingRepository, Infrastructure.DataAccess.Repositories.BookingRepository>();
         services.AddScoped<IBookingService, BookingService>();
         _serviceProvider = services.BuildServiceProvider();
     }

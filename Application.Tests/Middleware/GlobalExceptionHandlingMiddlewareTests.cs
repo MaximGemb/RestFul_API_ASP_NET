@@ -3,12 +3,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RestFulApi.Exceptions;
-using RestFulApi.Middleware;
+using Domain.Exceptions;
+using Presentation.Middleware;
 using Xunit;
 using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;
 
-namespace RestFulApi.Tests.Middleware;
+namespace Application.Tests.Middleware;
 
 public class GlobalExceptionHandlingMiddlewareTests
 {

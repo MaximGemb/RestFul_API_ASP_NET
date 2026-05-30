@@ -2,12 +2,12 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using RestFulApi.DataAccess;
-using RestFulApi.Models;
-using RestFulApi.Services;
+using Infrastructure.DataAccess;
+using Domain.Entities;
+using Application.Services;
 using Xunit;
 
-namespace RestFulApi.Tests.Services;
+namespace Application.Tests.Services;
 
 public class BookingBackgroundServiceTests
 {
@@ -314,8 +314,8 @@ public class BookingBackgroundServiceTests
         var dbName = $"BgTests_{Guid.NewGuid()}";
         var services = new ServiceCollection();
         services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(dbName));
-        services.AddScoped<RestFulApi.Interfaces.IEventRepository, RestFulApi.DataAccess.Repositories.EventRepository>();
-        services.AddScoped<RestFulApi.Interfaces.IBookingRepository, RestFulApi.DataAccess.Repositories.BookingRepository>();
+        services.AddScoped<Application.Interfaces.IEventRepository, Infrastructure.DataAccess.Repositories.EventRepository>();
+        services.AddScoped<Application.Interfaces.IBookingRepository, Infrastructure.DataAccess.Repositories.BookingRepository>();
         return services.BuildServiceProvider();
     }
 

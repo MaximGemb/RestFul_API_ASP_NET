@@ -12,15 +12,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using RestFulApi.DataAccess;
+using Infrastructure.DataAccess;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using RestFulApi.DTOs;
-using RestFulApi.Interfaces;
-using RestFulApi.Services;
+using Application.DTOs;
+using Application.Interfaces;
+using Application.Services;
 using Xunit;
 
-namespace RestFulApi.Tests;
+namespace Application.Tests;
 
 public class ProgramTests(TestWebApplicationFactory factory) : IClassFixture<TestWebApplicationFactory>
 {

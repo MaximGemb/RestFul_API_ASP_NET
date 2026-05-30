@@ -1,9 +1,9 @@
 using FluentAssertions;
-using RestFulApi.DTOs;
-using RestFulApi.Models;
+using Application.DTOs;
+using Domain.Entities;
 using Xunit;
 
-namespace RestFulApi.Tests.DTOs;
+namespace Application.Tests.DTOs;
 
 public class DtosTests
 {

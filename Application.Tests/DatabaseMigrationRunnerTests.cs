@@ -1,10 +1,10 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using RestFulApi.DataAccess;
+using Infrastructure.DataAccess;
 using Xunit;
 
-namespace RestFulApi.Tests;
+namespace Application.Tests;
 
 public class DatabaseMigrationRunnerTests
 {

@@ -1,9 +1,9 @@
 using FluentAssertions;
-using RestFulApi.Exceptions;
-using RestFulApi.Models;
+using Domain.Exceptions;
+using Domain.Entities;
 using Xunit;
 
-namespace RestFulApi.Tests.Models;
+namespace Application.Tests.Models;
 
 public class EventTests
 {

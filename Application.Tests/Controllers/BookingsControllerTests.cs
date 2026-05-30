@@ -1,14 +1,14 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using RestFulApi.Controllers;
-using RestFulApi.DTOs;
-using RestFulApi.Exceptions;
-using RestFulApi.Interfaces;
-using RestFulApi.Models;
+using Presentation.Controllers;
+using Application.DTOs;
+using Domain.Exceptions;
+using Application.Interfaces;
+using Domain.Entities;
 using Xunit;
 
-namespace RestFulApi.Tests.Controllers;
+namespace Application.Tests.Controllers;
 
 public class BookingsControllerTests
 {

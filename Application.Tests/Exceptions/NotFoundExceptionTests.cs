@@ -1,20 +1,20 @@
-using RestFulApi.Exceptions;
+using Domain.Exceptions;
 using Xunit;
 
-namespace RestFulApi.Tests.Exceptions;
+namespace Application.Tests.Exceptions;
 
-public class NoAvailableSeatsExceptionTests
+public class NotFoundExceptionTests
 {
     [Fact]
     public void Constructor_WithIdMessageAndInnerException_ShouldSetProperties()
     {
         // Arrange
         var id = Guid.NewGuid();
-        const string message = "Test error message";
+        var message = "Test error message";
         var innerException = new Exception("Inner error");
 
         // Act
-        var exception = new NoAvailableSeatsException(id, message, innerException);
+        var exception = new NotFoundException(id, message, innerException);
 
         // Assert
         Assert.Equal(id, exception.Id);
@@ -26,11 +26,11 @@ public class NoAvailableSeatsExceptionTests
     public void DefaultConstructor_ShouldSetDefaultMessage()
     {
         // Act
-        var exception = new NoAvailableSeatsException();
+        var exception = new NotFoundException();
 
         // Assert
         Assert.Null(exception.Id);
-        Assert.Equal("No available seats for this event", exception.Message);
+        Assert.Equal("Unknown event error.", exception.Message);
         Assert.Null(exception.InnerException);
     }
 
@@ -39,10 +39,10 @@ public class NoAvailableSeatsExceptionTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        const string message = "Custom error message";
+        var message = "Custom error message";
 
         // Act
-        var exception = new NoAvailableSeatsException(id, message);
+        var exception = new NotFoundException(id, message);
 
         // Assert
         Assert.Equal(id, exception.Id);

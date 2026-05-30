@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using RestFulApi.DataAccess;
-using RestFulApi.DataAccess.Repositories;
-using RestFulApi.Models;
+using Infrastructure.DataAccess;
+using Infrastructure.DataAccess.Repositories;
+using Domain.Entities;
 using Testcontainers.PostgreSql;
 using Xunit;
 
-namespace RestFulApi.IntegrationTests;
+namespace Infrastructure.IntegrationTests;
 
 public class BookingRepositoryTests : IAsyncLifetime
 {

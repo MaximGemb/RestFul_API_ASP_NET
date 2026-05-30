@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using FluentAssertions;
 using Moq;
-using RestFulApi.Controllers;
-using RestFulApi.DTOs;
-using RestFulApi.Interfaces;
-using RestFulApi.Models;
+using Presentation.Controllers;
+using Application.DTOs;
+using Application.Interfaces;
+using Domain.Entities;
 using Xunit;
 
-namespace RestFulApi.Tests.Controllers;
+namespace Application.Tests.Controllers;
 
 public class EventsControllerTests
 {
