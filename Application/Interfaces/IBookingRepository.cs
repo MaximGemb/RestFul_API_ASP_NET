@@ -1,11 +1,11 @@
 using Domain.Entities;
 
-namespace RestFulApi.Interfaces;
+namespace Application.Interfaces;
 
 /// <summary>
 /// Определяет контракт репозитория для работы с бронированиями.
 /// </summary>
-internal interface IBookingRepository
+public interface IBookingRepository
 {
     /// <summary>
     /// Возвращает бронирование по идентификатору или <c>null</c>, если не найдено.

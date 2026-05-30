@@ -1,6 +1,6 @@
-using Microsoft.EntityFrameworkCore;
-using RestFulApi.Interfaces;
+using Application.Interfaces;
 using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace RestFulApi.DataAccess.Repositories;
 

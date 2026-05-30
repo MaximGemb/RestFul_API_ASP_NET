@@ -1,9 +1,9 @@
-using RestFulApi.DTOs;
-using Domain.Exceptions;
-using RestFulApi.Interfaces;
+using Application.DTOs;
+using Application.Interfaces;
 using Domain.Entities;
+using Domain.Exceptions;
 
-namespace RestFulApi.Services;
+namespace Application.Services;
 
 /// <summary>
 /// Сервис для работы с событиями через репозиторий.

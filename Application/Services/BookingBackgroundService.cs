@@ -1,7 +1,10 @@
-using RestFulApi.Interfaces;
+using Application.Interfaces;
 using Domain.Entities;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
-namespace RestFulApi.Services;
+namespace Application.Services;
 
 /// <summary>
 /// Фоновый сервис, отвечающий за обработку бронирований со статусом Pending.

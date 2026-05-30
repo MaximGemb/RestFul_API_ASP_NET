@@ -1,6 +1,6 @@
-using RestFulApi.DTOs;
+using Application.DTOs;
 
-namespace RestFulApi.Interfaces;
+namespace Application.Interfaces;
 
 /// <summary>
 /// Определяет контракт сервиса для работы с бронированиями.

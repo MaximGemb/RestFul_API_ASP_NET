@@ -1,11 +1,11 @@
 using Domain.Entities;
 
-namespace RestFulApi.Interfaces;
+namespace Application.Interfaces;
 
 /// <summary>
 /// Определяет контракт репозитория для работы с событиями.
 /// </summary>
-internal interface IEventRepository
+public interface IEventRepository
 {
     /// <summary>
     /// Возвращает страницу событий с учётом фильтрации.

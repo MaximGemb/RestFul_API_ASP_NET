@@ -1,6 +1,6 @@
 using Domain.Entities;
 
-namespace RestFulApi.DTOs;
+namespace Application.DTOs;
 
 /// <summary>
 /// Представляет информацию о бронировании, возвращаемую клиенту.

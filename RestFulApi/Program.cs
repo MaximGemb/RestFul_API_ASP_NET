@@ -1,11 +1,11 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Application;
+using Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using RestFulApi.DataAccess;
 using RestFulApi.DataAccess.Repositories;
-using RestFulApi.Interfaces;
 using RestFulApi.Middleware;
-using RestFulApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,11 +20,8 @@ builder.Services.AddDbContext<AppDbContext>(opt => { opt.UseNpgsql(connectionStr
 builder.Services.AddScoped<IEventRepository, EventRepository>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 
-builder.Services.AddScoped<IEventService, EventService>();
-builder.Services.AddScoped<IBookingService, BookingService>();
-
-// Регистрация фонового сервиса для обработки бронирований
-builder.Services.AddHostedService<BookingBackgroundService>();
+// Регистрация сервисов и фонового сервиса слоя Application
+builder.Services.AddApplicationServices();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

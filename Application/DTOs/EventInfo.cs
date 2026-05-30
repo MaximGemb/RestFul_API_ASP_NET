@@ -1,4 +1,4 @@
-namespace RestFulApi.DTOs;
+namespace Application.DTOs;
 
 /// <summary>
 /// Представляет информацию о событии, возвращаемую клиенту.

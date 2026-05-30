@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
-using RestFulApi.DTOs;
-using RestFulApi.Interfaces;
+using Application.DTOs;
+using Application.Interfaces;
 
 namespace RestFulApi.Controllers;
 

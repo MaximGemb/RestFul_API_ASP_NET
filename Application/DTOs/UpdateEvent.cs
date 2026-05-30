@@ -1,4 +1,4 @@
-namespace RestFulApi.DTOs;
+namespace Application.DTOs;
 
 /// <summary>
 /// Данные для обновления существующего события.
