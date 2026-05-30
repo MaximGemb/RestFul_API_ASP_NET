@@ -1,5 +1,9 @@
 <Solution>
   <Project Path="RestFulApi/RestFulApi.csproj" />
+  <Project Path="Application/Application.csproj" />
+  <Project Path="Domain/Domain.csproj" />
+  <Project Path="Infrastructure/Infrastructure.csproj" />
+  <Project Path="Presentation/Presentation.csproj" />
   <Project Path="RestFulApi.IntegrationTests/RestFulApi.IntegrationTests.csproj" />
   <Project Path="RestFulApi.Tests/RestFulApi.Tests.csproj" />
 </Solution>
