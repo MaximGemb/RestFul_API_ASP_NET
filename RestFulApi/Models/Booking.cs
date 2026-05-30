@@ -8,13 +8,19 @@ namespace RestFulApi.Models;
 /// Представляет бронь на событие.
 /// </summary>
 [SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
-internal sealed class Booking
+public sealed class Booking
 {
+    /// <summary>
+    /// Конструктор по умолчанию для Entity Framework.
+    /// </summary>
     // ReSharper disable once UnusedMember.Local
     private Booking()
     {
     }
 
+    /// <summary>
+    /// Инициализирует новый экземпляр брони с заданными параметрами.
+    /// </summary>
     private Booking(
         Guid id,
         Guid eventId,
@@ -67,7 +73,7 @@ internal sealed class Booking
     /// <param name="eventId">Идентификатор события.</param>
     /// <returns>Новый экземпляр брони.</returns>
     /// <exception cref="Exceptions.NotFoundException">Выбрасывается, если передан пустой идентификатор события.</exception>
-    internal static Booking CreatePending(Guid eventId)
+    public static Booking CreatePending(Guid eventId)
     {
         return eventId == Guid.Empty
             ? throw new NotFoundException(null, $"Can't get event with id {Guid.Empty}. Event not found")

@@ -1,5 +1,4 @@
 using RestFulApi.DTOs;
-using RestFulApi.Models;
 
 namespace RestFulApi.Interfaces;
 

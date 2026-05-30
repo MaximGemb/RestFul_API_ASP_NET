@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace RestFulApi.Exceptions;
+﻿namespace RestFulApi.Exceptions;
 
 /// <summary>
 /// Исключение, выбрасываемое при ошибках валидации входных данных.

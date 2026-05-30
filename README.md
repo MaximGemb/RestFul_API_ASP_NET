@@ -43,7 +43,7 @@
    ```
    Параметры по умолчанию: хост `localhost`, порт `5432`, база данных `eventapi`, пользователь `postgres`.
 
-   > **Важно:** при первом запуске схема базы данных (таблицы) создаётся **автоматически** с помощью `EnsureCreated()`. Вручную применять миграции не требуется.
+   > **Важно:** схема базы данных управляется **миграциями EF Core**. При запуске приложения они применяются автоматически через `DatabaseMigrationRunner.MigrateIfRelational`.
 
 4. **Восстановите зависимости:**
    ```sh
@@ -60,6 +60,33 @@
    dotnet run
    ```
    После запуска API будет доступно по адресу `https://localhost:<port>` и `http://localhost:<port>`, где `<port>` — это случайно сгенерированный порт, указанный в консоли.
+
+## Управление миграциями EF Core
+
+Схема БД версионируется миграциями EF Core (файлы находятся в `RestFulApi/Migrations/`). При старте приложения все непримененные миграции применяются автоматически через `DatabaseMigrationRunner.MigrateIfRelational`.
+
+> Для работы команд `dotnet ef` необходимо установить инструмент:
+> ```sh
+> dotnet tool install --global dotnet-ef
+> ```
+
+### Создание новой миграции
+
+```sh
+dotnet ef migrations add <НазваниеМиграции> --project RestFulApi
+```
+
+### Применение миграций вручную
+
+```sh
+dotnet ef database update --project RestFulApi
+```
+
+### Откат до конкретной миграции
+
+```sh
+dotnet ef database update <НазваниеЦелевойМиграции> --project RestFulApi
+```
 
 ## Документация API
 
@@ -283,13 +310,21 @@ GET /api/events/11111111-1111-1111-1111-111111111111
 dotnet test
 ```
 
-Для запуска только тестового проекта:
+Для запуска только модульных тестов:
 
 ```sh
 dotnet test .\RestFulApi.Tests\RestFulApi.Tests.csproj
 ```
 
-> **InMemory-провайдер в тестах:** тестовый проект (`RestFulApi.Tests`) использует пакет `Microsoft.EntityFrameworkCore.InMemory`. `AppDbContext` конфигурируется с in-memory базой данных, что позволяет запускать тесты без реального PostgreSQL-сервера.
+Для запуска только интеграционных тестов:
+
+```sh
+dotnet test .\RestFulApi.IntegrationTests\RestFulApi.IntegrationTests.csproj
+```
+
+> **InMemory-провайдер в модульных тестах:** тестовый проект (`RestFulApi.Tests`) использует пакет `Microsoft.EntityFrameworkCore.InMemory`. `AppDbContext` конфигурируется с in-memory базой данных, что позволяет запускать тесты без реального PostgreSQL-сервера.
+
+> **Интеграционные тесты (`RestFulApi.IntegrationTests`) требуют Docker.** Они используют пакет `Testcontainers.PostgreSql`, который автоматически поднимает контейнер `postgres:16-alpine` перед каждым тестовым классом и удаляет его после завершения. Перед запуском убедитесь, что Docker Desktop (или Docker Engine) запущен на вашей машине.
 
 ## Структура проекта
 

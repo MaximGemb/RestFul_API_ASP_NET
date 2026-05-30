@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using RestFulApi.DataAccess;
+using RestFulApi.DataAccess.Repositories;
 using RestFulApi.Interfaces;
 using RestFulApi.Middleware;
 using RestFulApi.Services;
@@ -15,6 +16,9 @@ builder.Services.AddControllers()
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(opt => { opt.UseNpgsql(connectionString); });
+
+builder.Services.AddScoped<IEventRepository, EventRepository>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
@@ -36,7 +40,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    DatabaseMigrationRunner.MigrateIfRelational(db);
 }
 
 // Глобальная обработка исключений — должна быть зарегистрирована первой в pipeline
