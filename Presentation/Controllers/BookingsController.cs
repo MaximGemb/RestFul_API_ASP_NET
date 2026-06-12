@@ -29,4 +29,31 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
         var booking = await bookingService.GetBookingByIdAsync(id, ct);
         return Ok(booking);
     }
+
+    /// <summary>
+    /// Отменить бронирование. Может выполнить только владелец брони.
+    /// </summary>
+    /// <param name="id">Идентификатор бронирования.</param>
+    /// <param name="ct">Токен отмены.</param>
+    /// <returns>Информация об отменённой брони.</returns>
+    /// <response code="200">Бронь успешно отменена.</response>
+    /// <response code="400">Отсутствует или некорректен заголовок X-User-Id.</response>
+    /// <response code="403">Пользователь не является владельцем брони.</response>
+    /// <response code="404">Бронь не найдена.</response>
+    /// <response code="409">Бронь уже отменена.</response>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<BookingInfo>> CancelBooking(Guid id, CancellationToken ct)
+    {
+        if (!Request.Headers.TryGetValue("X-User-Id", out var userIdHeader) ||
+            !Guid.TryParse(userIdHeader, out var userId))
+            return BadRequest("Заголовок X-User-Id с корректным Guid обязателен.");
+
+        var booking = await bookingService.CancelBookingAsync(id, userId, ct);
+        return Ok(booking);
+    }
 }

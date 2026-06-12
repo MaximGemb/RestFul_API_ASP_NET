@@ -23,6 +23,13 @@ public interface IBookingRepository
     Task AddAsync(Booking booking, CancellationToken ct = default);
 
     /// <summary>
+    /// Возвращает количество активных бронирований пользователя (статус Pending или Confirmed).
+    /// </summary>
+    /// <param name="userId">Идентификатор пользователя.</param>
+    /// <param name="ct">Токен отмены.</param>
+    Task<int> CountActiveByUserAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
     /// Сохраняет все изменения в базе данных.
     /// </summary>
     Task SaveChangesAsync(CancellationToken ct = default);

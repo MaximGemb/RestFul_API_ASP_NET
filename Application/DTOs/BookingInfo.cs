@@ -16,6 +16,10 @@ public sealed record BookingInfo
     /// </summary>
     public required Guid EventId { get; init; }
     /// <summary>
+    /// Идентификатор пользователя, создавшего бронь.
+    /// </summary>
+    public required Guid UserId { get; init; }
+    /// <summary>
     /// Текущий статус брони.
     /// </summary>
     public required BookingStatus Status { get; init; }

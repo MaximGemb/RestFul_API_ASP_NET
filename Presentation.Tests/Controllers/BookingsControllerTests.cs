@@ -30,6 +30,7 @@ public class BookingsControllerTests
         {
             Id = bookingId,
             EventId = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
             Status = BookingStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };

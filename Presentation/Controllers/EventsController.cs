@@ -119,17 +119,22 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// <param name="ct">Токен отмены.</param>
     /// <returns>Информация о созданной брони.</returns>
     /// <response code="202">Запрос на бронирование принят в обработку.</response>
+    /// <response code="400">Отсутствует или некорректен заголовок X-User-Id.</response>
     /// <response code="404">Событие не найдено.</response>
-    /// <response code="409">Свободные места для события закончились.</response>
+    /// <response code="409">Свободные места закончились, событие уже началось или превышен лимит бронирований.</response>
     [HttpPost("{id:guid}/book")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> BookEvent(Guid id, CancellationToken ct)
     {
-        var booking = await bookingService.CreateBookingAsync(id, ct);
+        if (!Request.Headers.TryGetValue("X-User-Id", out var userIdHeader) ||
+            !Guid.TryParse(userIdHeader, out var userId))
+            return BadRequest("Заголовок X-User-Id с корректным Guid обязателен.");
 
-        // Возвращаем Location заголовок и информацию о брони
+        var booking = await bookingService.CreateBookingAsync(id, userId, ct);
+
         return AcceptedAtAction("GetBooking", "Bookings", new { id = booking.Id }, booking);
     }
 }

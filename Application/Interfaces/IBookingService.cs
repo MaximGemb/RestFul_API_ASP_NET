@@ -8,12 +8,22 @@ namespace Application.Interfaces;
 public interface IBookingService
 {
     /// <summary>
-    /// Создает новую бронь для указанного события.
+    /// Создает новую бронь для указанного события от имени пользователя.
     /// </summary>
     /// <param name="eventId">Идентификатор события.</param>
+    /// <param name="userId">Идентификатор пользователя, создающего бронь.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Информация о созданном бронировании.</returns>
-    Task<BookingInfo> CreateBookingAsync(Guid eventId, CancellationToken ct = default);
+    Task<BookingInfo> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Отменяет бронь. Может выполнить только владелец брони.
+    /// </summary>
+    /// <param name="bookingId">Идентификатор бронирования.</param>
+    /// <param name="userId">Идентификатор пользователя, выполняющего отмену.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>Информация об отменённом бронировании.</returns>
+    Task<BookingInfo> CancelBookingAsync(Guid bookingId, Guid userId, CancellationToken ct = default);
 
     /// <summary>
     /// Возвращает бронь по идентификатору.

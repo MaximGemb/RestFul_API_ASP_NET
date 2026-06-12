@@ -26,12 +26,13 @@ public class BookingService : IBookingService
     }
 
     /// <summary>
-    /// Создает новую бронь для указанного события.
+    /// Создает новую бронь для указанного события от имени пользователя.
     /// </summary>
     /// <param name="eventId">Идентификатор события.</param>
+    /// <param name="userId">Идентификатор пользователя, создающего бронь.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Информация о созданном бронировании.</returns>
-    public async Task<BookingInfo> CreateBookingAsync(Guid eventId, CancellationToken ct = default)
+    public async Task<BookingInfo> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken ct = default)
     {
         await BookingLock.WaitAsync(ct);
         try
@@ -39,9 +40,12 @@ public class BookingService : IBookingService
             var @event = await _eventRepository.FindByIdAsync(eventId, ct)
                          ?? throw new NotFoundException(eventId, $"Событие с идентификатором {eventId} не найдено.");
 
+            var activeCount = await _bookingRepository.CountActiveByUserAsync(userId, ct);
+
+            var newBooking = Booking.CreatePending(@event, userId, activeCount);
+
             @event.TryReserveSeats();
 
-            var newBooking = Booking.CreatePending(eventId);
             await _bookingRepository.AddAsync(newBooking, ct);
             await _bookingRepository.SaveChangesAsync(ct);
 
@@ -51,6 +55,32 @@ public class BookingService : IBookingService
         {
             BookingLock.Release();
         }
+    }
+
+    /// <summary>
+    /// Отменяет бронь. Может выполнить только владелец брони.
+    /// </summary>
+    /// <param name="bookingId">Идентификатор бронирования.</param>
+    /// <param name="userId">Идентификатор пользователя, выполняющего отмену.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>Информация об отменённом бронировании.</returns>
+    public async Task<BookingInfo> CancelBookingAsync(Guid bookingId, Guid userId, CancellationToken ct = default)
+    {
+        var booking = await _bookingRepository.FindByIdAsync(bookingId, ct)
+                      ?? throw new NotFoundException(bookingId, $"Бронь с идентификатором {bookingId} не найдена.");
+
+        var previousStatus = booking.Status;
+
+        booking.Cancel(userId);
+
+        if (previousStatus is BookingStatus.Pending or BookingStatus.Confirmed)
+        {
+            var @event = await _eventRepository.FindByIdAsync(booking.EventId, ct);
+            @event?.ReleaseSeats();
+        }
+
+        await _bookingRepository.SaveChangesAsync(ct);
+        return ToInfo(booking);
     }
 
     /// <summary>
@@ -74,6 +104,7 @@ public class BookingService : IBookingService
     {
         Id = booking.Id,
         EventId = booking.EventId,
+        UserId = booking.UserId,
         Status = booking.Status,
         CreatedAt = booking.CreatedAt,
         ProcessedAt = booking.ProcessedAt
