@@ -18,6 +18,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IBookingService, BookingService>();
         services.AddHostedService<BookingBackgroundService>();
+        services.AddSingleton<IPasswordHasherService, PasswordHasherService>();
 
         return services;
     }

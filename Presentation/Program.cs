@@ -1,8 +1,6 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
-using Application;
 using Application.Extensions;
-using Infrastructure;
 using Infrastructure.DataAccess;
 using Infrastructure.Extensions;
 using Presentation.Middleware;
@@ -15,7 +13,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddInfrastructureServices(connectionString);
+builder.Services.AddInfrastructureServices(connectionString, builder.Configuration);
 builder.Services.AddApplicationServices();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
