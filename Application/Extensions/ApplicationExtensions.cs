@@ -1,7 +1,8 @@
 using Application.Interfaces;
 using Application.Services;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Presentation.Extensions;
+namespace Application.Extensions;
 
 /// <summary>
 /// Регистрация зависимостей слоя приложения.

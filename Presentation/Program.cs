@@ -1,9 +1,10 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Application;
+using Application.Extensions;
 using Infrastructure;
 using Infrastructure.DataAccess;
-using Presentation.Extensions;
+using Infrastructure.Extensions;
 using Presentation.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);

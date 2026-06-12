@@ -2,8 +2,9 @@ using Application.Interfaces;
 using Infrastructure.DataAccess;
 using Infrastructure.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Presentation.Extensions;
+namespace Infrastructure.Extensions;
 
 /// <summary>
 /// Регистрация зависимостей инфраструктурного слоя.

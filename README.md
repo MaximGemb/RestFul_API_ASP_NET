@@ -364,7 +364,8 @@ RestFul_API_ASP_NET/
 │   │   ├── BookingInfo.cs           # Ответ с данными бронирования
 │   │   ├── PaginatedResult.cs       # Обёртка для пагинированного ответа
 │   │   └── PaginationRequest.cs     # Параметры пагинации
-│   └── DependencyInjection.cs       # Регистрация сервисов слоя Application
+│   └── Extensions/
+│       └── ApplicationExtensions.cs # Класс ApplicationServiceRegistration — регистрация сервисов слоя Application
 │
 ├── Infrastructure/                  # Инфраструктурный слой (реализация)
 │   ├── DataAccess/
@@ -377,7 +378,8 @@ RestFul_API_ASP_NET/
 │   │       ├── EventRepository.cs   # Реализация IEventRepository
 │   │       └── BookingRepository.cs # Реализация IBookingRepository
 │   ├── Migrations/                  # Файлы миграций EF Core
-│   └── InfrastructureServiceRegistration.cs  # Регистрация DbContext и репозиториев
+│   └── Extensions/
+│       └── InfrastructureExtensions.cs  # Класс InfrastructureServiceRegistration — регистрация DbContext и репозиториев
 │
 ├── Presentation/                    # Слой представления (точка входа)
 │   ├── Controllers/
