@@ -13,7 +13,7 @@ public sealed class Booking
     /// <summary>
     /// Максимальное количество активных бронирований для одного пользователя.
     /// </summary>
-    public const int MaxActiveBookingsPerUser = 5;
+    public const int MaxActiveBookingsPerUser = 10;
 
     /// <summary>
     /// Конструктор по умолчанию для Entity Framework.
@@ -142,9 +142,9 @@ public sealed class Booking
     /// <param name="userId">Идентификатор пользователя, выполняющего отмену.</param>
     /// <exception cref="OperationNotAllowedException">Пользователь не является владельцем брони.</exception>
     /// <exception cref="InvalidOperationException">Бронь уже отменена.</exception>
-    public void Cancel(Guid userId)
+    public void Cancel(Guid userId, bool isAdmin = false)
     {
-        if (UserId != userId)
+        if (!isAdmin && UserId != userId)
             throw new OperationNotAllowedException(userId,
                 $"User {userId} is not allowed to cancel booking {Id} owned by another user.");
 

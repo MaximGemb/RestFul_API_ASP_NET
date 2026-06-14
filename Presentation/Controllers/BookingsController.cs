@@ -1,3 +1,6 @@
+using System.Security.Claims;
+using Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Application.DTOs;
 using Application.Interfaces;
@@ -31,29 +34,31 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
     }
 
     /// <summary>
-    /// Отменить бронирование. Может выполнить только владелец брони.
+    /// Отменить бронирование. Может выполнить только владелец брони или администратор.
     /// </summary>
     /// <param name="id">Идентификатор бронирования.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <returns>Информация об отменённой брони.</returns>
     /// <response code="200">Бронь успешно отменена.</response>
-    /// <response code="400">Отсутствует или некорректен заголовок X-User-Id.</response>
+    /// <response code="401">Пользователь не аутентифицирован.</response>
     /// <response code="403">Пользователь не является владельцем брони.</response>
     /// <response code="404">Бронь не найдена.</response>
     /// <response code="409">Бронь уже отменена.</response>
+    [Authorize]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<BookingInfo>> CancelBooking(Guid id, CancellationToken ct)
     {
-        if (!Request.Headers.TryGetValue("X-User-Id", out var userIdHeader) ||
-            !Guid.TryParse(userIdHeader, out var userId))
-            return BadRequest("Заголовок X-User-Id с корректным Guid обязателен.");
+        if (!Guid.TryParse(User.FindFirstValue("sub"), out var userId))
+            return Unauthorized();
 
-        var booking = await bookingService.CancelBookingAsync(id, userId, ct);
+        var isAdmin = User.FindFirstValue("role") == nameof(Roles.Admin);
+
+        var booking = await bookingService.CancelBookingAsync(id, userId, isAdmin, ct);
         return Ok(booking);
     }
 }

@@ -29,6 +29,7 @@ public static class InfrastructureServiceRegistration
 
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
         services.Configure<JwtSettings>(options => configuration.GetSection("Jwt").Bind(options));
         services.AddScoped<IJwtTokenService, JwtTokenService>();

@@ -58,20 +58,21 @@ public class BookingService : IBookingService
     }
 
     /// <summary>
-    /// Отменяет бронь. Может выполнить только владелец брони.
+    /// Отменяет бронь. Администратор может отменить любую бронь; обычный пользователь — только свою.
     /// </summary>
     /// <param name="bookingId">Идентификатор бронирования.</param>
     /// <param name="userId">Идентификатор пользователя, выполняющего отмену.</param>
+    /// <param name="isAdmin">Признак администратора: если <c>true</c>, проверка владельца пропускается.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Информация об отменённом бронировании.</returns>
-    public async Task<BookingInfo> CancelBookingAsync(Guid bookingId, Guid userId, CancellationToken ct = default)
+    public async Task<BookingInfo> CancelBookingAsync(Guid bookingId, Guid userId, bool isAdmin, CancellationToken ct = default)
     {
         var booking = await _bookingRepository.FindByIdAsync(bookingId, ct)
                       ?? throw new NotFoundException(bookingId, $"Бронь с идентификатором {bookingId} не найдена.");
 
         var previousStatus = booking.Status;
 
-        booking.Cancel(userId);
+        booking.Cancel(userId, isAdmin);
 
         if (previousStatus is BookingStatus.Pending or BookingStatus.Confirmed)
         {

@@ -80,6 +80,8 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
                               or EventAlreadyStartedException
                               or ActiveBookingsLimitExceededException
                               or OperationNotAllowedException
+                              or InvalidCredentialsException
+                              or LoginAlreadyExistsException
             ? ex.Message
             : "An unexpected error occurred.";
 
@@ -106,9 +108,11 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
             ValidationException => (StatusCodes.Status400BadRequest, "Validation Error"),
             NotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
             NoAvailableSeatsException => (StatusCodes.Status409Conflict, "No Available Seats"),
-            EventAlreadyStartedException => (StatusCodes.Status409Conflict, "Event Already Started"),
+            EventAlreadyStartedException => (StatusCodes.Status400BadRequest, "Bad Request"),
             ActiveBookingsLimitExceededException => (StatusCodes.Status409Conflict, "Active Bookings Limit Exceeded"),
             OperationNotAllowedException => (StatusCodes.Status403Forbidden, "Forbidden"),
+            InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
+            LoginAlreadyExistsException => (StatusCodes.Status409Conflict, "Conflict"),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
         };
 }

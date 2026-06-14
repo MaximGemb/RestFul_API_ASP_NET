@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Application.DTOs;
 using Application.Interfaces;
@@ -119,19 +121,21 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// <param name="ct">Токен отмены.</param>
     /// <returns>Информация о созданной брони.</returns>
     /// <response code="202">Запрос на бронирование принят в обработку.</response>
-    /// <response code="400">Отсутствует или некорректен заголовок X-User-Id.</response>
+    /// <response code="400">Событие уже началось.</response>
+    /// <response code="401">Пользователь не аутентифицирован.</response>
     /// <response code="404">Событие не найдено.</response>
-    /// <response code="409">Свободные места закончились, событие уже началось или превышен лимит бронирований.</response>
+    /// <response code="409">Свободные места закончились или превышен лимит бронирований.</response>
+    [Authorize]
     [HttpPost("{id:guid}/book")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> BookEvent(Guid id, CancellationToken ct)
     {
-        if (!Request.Headers.TryGetValue("X-User-Id", out var userIdHeader) ||
-            !Guid.TryParse(userIdHeader, out var userId))
-            return BadRequest("Заголовок X-User-Id с корректным Guid обязателен.");
+        if (!Guid.TryParse(User.FindFirstValue("sub"), out var userId))
+            return Unauthorized();
 
         var booking = await bookingService.CreateBookingAsync(id, userId, ct);
 

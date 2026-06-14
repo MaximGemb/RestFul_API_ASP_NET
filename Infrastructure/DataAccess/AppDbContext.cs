@@ -17,6 +17,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     /// Набор бронирований в базе данных.
     /// </summary>
     public DbSet<Booking> Bookings => Set<Booking>();
+    /// <summary>
+    /// Набор пользователей в базе данных.
+    /// </summary>
+    public DbSet<User> Users => Set<User>();
 
     /// <summary>
     /// Применяет все конфигурации сущностей из текущей сборки.
