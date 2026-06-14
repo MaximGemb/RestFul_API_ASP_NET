@@ -30,7 +30,15 @@ public class BookingRepositoryTests : IAsyncLifetime
     private async Task ResetDatabaseAsync()
     {
         await using var context = CreateContext();
-        await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE events, bookings RESTART IDENTITY CASCADE");
+        await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE users, events, bookings RESTART IDENTITY CASCADE");
+    }
+
+    private static async Task<Guid> SeedUserAsync(AppDbContext context)
+    {
+        var user = User.Create("user_" + Guid.NewGuid().ToString("N")[..8], "hash", Roles.User);
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        return user.Id;
     }
 
     [Fact]
@@ -45,8 +53,9 @@ public class BookingRepositoryTests : IAsyncLifetime
         context.Events.Add(expectedEvent);
         await context.SaveChangesAsync();
 
+        var userId = await SeedUserAsync(context);
         var repository = new BookingRepository(context);
-        var booking = Booking.CreatePending(expectedEvent.Id);
+        var booking = Booking.CreatePending(expectedEvent.Id, userId);
 
         // Act
         await repository.AddAsync(booking);
@@ -73,7 +82,8 @@ public class BookingRepositoryTests : IAsyncLifetime
         context.Events.Add(testEvent);
         await context.SaveChangesAsync();
 
-        var expectedBooking = Booking.CreatePending(testEvent.Id);
+        var userId = await SeedUserAsync(context);
+        var expectedBooking = Booking.CreatePending(testEvent.Id, userId);
         context.Bookings.Add(expectedBooking);
         await context.SaveChangesAsync();
 
@@ -98,7 +108,8 @@ public class BookingRepositoryTests : IAsyncLifetime
         arrangeContext.Events.Add(testEvent);
         await arrangeContext.SaveChangesAsync();
 
-        var bookingToUpdate = Booking.CreatePending(testEvent.Id);
+        var userId = await SeedUserAsync(arrangeContext);
+        var bookingToUpdate = Booking.CreatePending(testEvent.Id, userId);
         arrangeContext.Bookings.Add(bookingToUpdate);
         await arrangeContext.SaveChangesAsync();
 
@@ -128,13 +139,14 @@ public class BookingRepositoryTests : IAsyncLifetime
         context.Events.Add(testEvent);
         await context.SaveChangesAsync();
 
-        var pendingBooking1 = Booking.CreatePending(testEvent.Id);
-        var pendingBooking2 = Booking.CreatePending(testEvent.Id);
-        
-        var confirmedBooking = Booking.CreatePending(testEvent.Id);
+        var userId = await SeedUserAsync(context);
+        var pendingBooking1 = Booking.CreatePending(testEvent.Id, userId);
+        var pendingBooking2 = Booking.CreatePending(testEvent.Id, userId);
+
+        var confirmedBooking = Booking.CreatePending(testEvent.Id, userId);
         confirmedBooking.Confirm();
-        
-        var rejectedBooking = Booking.CreatePending(testEvent.Id);
+
+        var rejectedBooking = Booking.CreatePending(testEvent.Id, userId);
         rejectedBooking.Reject();
 
         context.Bookings.AddRange(pendingBooking1, pendingBooking2, confirmedBooking, rejectedBooking);
@@ -161,8 +173,9 @@ public class BookingRepositoryTests : IAsyncLifetime
         await using var context = CreateContext();
         var repository = new BookingRepository(context);
         
+        var userId = await SeedUserAsync(context);
         var invalidEventId = Guid.NewGuid();
-        var booking = Booking.CreatePending(invalidEventId);
+        var booking = Booking.CreatePending(invalidEventId, userId);
 
         // Act
         await repository.AddAsync(booking);
@@ -182,7 +195,8 @@ public class BookingRepositoryTests : IAsyncLifetime
         context.Events.Add(testEvent);
         await context.SaveChangesAsync();
 
-        var booking = Booking.CreatePending(testEvent.Id);
+        var userId = await SeedUserAsync(context);
+        var booking = Booking.CreatePending(testEvent.Id, userId);
         context.Bookings.Add(booking);
         await context.SaveChangesAsync();
 

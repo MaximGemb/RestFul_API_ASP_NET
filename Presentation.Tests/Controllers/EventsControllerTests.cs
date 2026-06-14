@@ -6,6 +6,7 @@ using Presentation.Controllers;
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
+using System.Security.Claims;
 using Xunit;
 
 namespace Presentation.Tests.Controllers;
@@ -204,11 +205,12 @@ public class EventsControllerTests
 
         var bookingServiceMock = new Mock<IBookingService>();
         bookingServiceMock
-            .Setup(service => service.CreateBookingAsync(eventId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(service => service.CreateBookingAsync(eventId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(booking);
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers["X-User-Id"] = userId.ToString();
+        var claims = new List<Claim> { new("sub", userId.ToString()) };
+        var identity = new ClaimsIdentity(claims, "Test");
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
 
         var controller = new EventsController(new Mock<IEventService>().Object, bookingServiceMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
@@ -227,7 +229,7 @@ public class EventsControllerTests
     }
 
     [Fact]
-    public async Task BookEvent_ShouldReturnBadRequest_WhenXUserIdHeaderIsMissing()
+    public async Task BookEvent_ShouldReturnUnauthorized_WhenSubClaimIsMissing()
     {
         // Arrange
         var controller = new EventsController(new Mock<IEventService>().Object, new Mock<IBookingService>().Object);
@@ -238,6 +240,6 @@ public class EventsControllerTests
         var result = await controller.BookEvent(Guid.NewGuid(), cts.Token);
 
         // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
+        result.Should().BeOfType<UnauthorizedResult>();
     }
 }

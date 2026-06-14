@@ -1,5 +1,9 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentAssertions;
@@ -12,6 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.IdentityModel.Tokens;
 using Infrastructure.DataAccess;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -118,6 +123,13 @@ public class ProgramTests(TestWebApplicationFactory factory) : IClassFixture<Tes
             BaseAddress = new Uri("https://localhost")
         });
 
+        const string secret = "we_are_the_nobodies_wanna_be_somebodies";
+        const string issuer = "RestFulApiAspNet";
+        const string audience = "RestFulApiAspNetUsers";
+
+        var adminToken = GenerateJwtToken(Guid.NewGuid(), "Admin", secret, issuer, audience);
+        var userToken = GenerateJwtToken(Guid.NewGuid(), "User", secret, issuer, audience);
+
         var now = DateTime.UtcNow;
         var eventDto = new CreateEvent
         {
@@ -128,7 +140,11 @@ public class ProgramTests(TestWebApplicationFactory factory) : IClassFixture<Tes
             TotalSeats = 10
         };
 
-        var createEventResponse = await client.PostAsJsonAsync("/Events", eventDto, TestContext.Current.CancellationToken);
+        var createRequest = new HttpRequestMessage(HttpMethod.Post, "/Events");
+        createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        createRequest.Content = JsonContent.Create(eventDto);
+
+        var createEventResponse = await client.SendAsync(createRequest, TestContext.Current.CancellationToken);
         createEventResponse.EnsureSuccessStatusCode();
 
         var createdEventJson = await createEventResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -136,7 +152,10 @@ public class ProgramTests(TestWebApplicationFactory factory) : IClassFixture<Tes
         var eventId = createdEventDocument.RootElement.GetProperty("id").GetGuid();
 
         // Act
-        var bookingResponse = await client.PostAsync($"/Events/{eventId}/book", null, TestContext.Current.CancellationToken);
+        var bookRequest = new HttpRequestMessage(HttpMethod.Post, $"/Events/{eventId}/book");
+        bookRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userToken);
+
+        var bookingResponse = await client.SendAsync(bookRequest, TestContext.Current.CancellationToken);
 
         // Assert
         bookingResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
@@ -147,6 +166,24 @@ public class ProgramTests(TestWebApplicationFactory factory) : IClassFixture<Tes
         var statusProperty = bookingDocument.RootElement.GetProperty("status");
         statusProperty.ValueKind.Should().Be(JsonValueKind.String);
         statusProperty.GetString().Should().Be("Pending");
+    }
+
+    private static string GenerateJwtToken(Guid userId, string role, string secret, string issuer, string audience)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var claims = new[]
+        {
+            new Claim("sub", userId.ToString()),
+            new Claim("role", role)
+        };
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: creds);
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
 

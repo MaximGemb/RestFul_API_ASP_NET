@@ -7,6 +7,7 @@ using Application.Interfaces;
 using Domain.Entities;
 using Application.Services;
 using Xunit;
+using System.Reflection;
 
 namespace Application.Tests.Services;
 
@@ -184,6 +185,63 @@ public class BookingServiceTests : IDisposable
         var action = () => bookingService.GetBookingByIdAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         await action.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_ShouldThrowEventAlreadyStartedException_WhenEventAlreadyStarted()
+    {
+        var eventId = await SeedPastEventAsync();
+
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+
+        var action = () => bookingService.CreateBookingAsync(eventId, Guid.NewGuid(), TestContext.Current.CancellationToken);
+
+        await action.Should().ThrowAsync<EventAlreadyStartedException>();
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_LimitsAreIndependentPerUser_WhenDifferentUsers()
+    {
+        var eventId = await SeedEventAsync(totalSeats: Booking.MaxActiveBookingsPerUser + 1);
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+
+        for (var i = 0; i < Booking.MaxActiveBookingsPerUser; i++)
+        {
+            await using var scope = _serviceProvider.CreateAsyncScope();
+            var svc = scope.ServiceProvider.GetRequiredService<IBookingService>();
+            await svc.CreateBookingAsync(eventId, userId1, TestContext.Current.CancellationToken);
+        }
+
+        await using var scope2 = _serviceProvider.CreateAsyncScope();
+        var bookingService2 = scope2.ServiceProvider.GetRequiredService<IBookingService>();
+        var booking = await bookingService2.CreateBookingAsync(eventId, userId2, TestContext.Current.CancellationToken);
+
+        booking.UserId.Should().Be(userId2);
+        booking.Status.Should().Be(BookingStatus.Pending);
+    }
+
+    private async Task<Guid> SeedPastEventAsync(int totalSeats = 10)
+    {
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var @event = Event.Create(
+            title: "Past event",
+            startAt: DateTime.UtcNow.AddDays(2),
+            endAt: DateTime.UtcNow.AddDays(3),
+            totalSeats: totalSeats,
+            description: "desc");
+
+        typeof(Event)
+            .GetProperty(nameof(Event.StartAt))!
+            .GetSetMethod(nonPublic: true)!
+            .Invoke(@event, [DateTime.UtcNow.AddDays(-1)]);
+
+        await context.Events.AddAsync(@event, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return @event.Id;
     }
 
     private async Task<Guid> SeedEventAsync(int totalSeats = 10)
