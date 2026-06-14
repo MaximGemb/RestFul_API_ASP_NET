@@ -85,15 +85,21 @@ public class BookingService : IBookingService
     }
 
     /// <summary>
-    /// Возвращает бронь по идентификатору.
+    /// Возвращает бронь по идентификатору с проверкой прав доступа.
     /// </summary>
     /// <param name="bookingId">Идентификатор бронирования.</param>
+    /// <param name="userId">Идентификатор запрашивающего пользователя.</param>
+    /// <param name="isAdmin">Признак администратора: если <c>true</c>, проверка владельца пропускается.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Информация о найденном бронировании.</returns>
-    public async Task<BookingInfo> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default)
+    public async Task<BookingInfo> GetBookingByIdAsync(Guid bookingId, Guid userId, bool isAdmin, CancellationToken ct = default)
     {
         var booking = await _bookingRepository.FindByIdAsync(bookingId, ct)
                       ?? throw new NotFoundException(bookingId, $"Бронь с идентификатором {bookingId} не найдена.");
+
+        if (!isAdmin && booking.UserId != userId)
+            throw new OperationNotAllowedException(userId,
+                $"User {userId} is not allowed to view booking {bookingId} owned by another user.");
 
         return ToInfo(booking);
     }

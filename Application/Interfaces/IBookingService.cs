@@ -37,10 +37,21 @@ public interface IBookingService
         CancelBookingAsync(bookingId, userId, false, ct);
 
     /// <summary>
-    /// Возвращает бронь по идентификатору.
+    /// Возвращает бронь по идентификатору с проверкой прав доступа.
+    /// </summary>
+    /// <param name="bookingId">Идентификатор бронирования.</param>
+    /// <param name="userId">Идентификатор запрашивающего пользователя.</param>
+    /// <param name="isAdmin">Признак администратора: если <c>true</c>, проверка владельца пропускается.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>Информация о найденном бронировании.</returns>
+    Task<BookingInfo> GetBookingByIdAsync(Guid bookingId, Guid userId, bool isAdmin, CancellationToken ct = default);
+
+    /// <summary>
+    /// Возвращает бронь по идентификатору без проверки владельца (для внутреннего/тестового использования).
     /// </summary>
     /// <param name="bookingId">Идентификатор бронирования.</param>
     /// <param name="ct">Токен отмены операции.</param>
     /// <returns>Информация о найденном бронировании.</returns>
-    Task<BookingInfo> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default);
+    Task<BookingInfo> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default) =>
+        GetBookingByIdAsync(bookingId, Guid.Empty, isAdmin: true, ct);
 }

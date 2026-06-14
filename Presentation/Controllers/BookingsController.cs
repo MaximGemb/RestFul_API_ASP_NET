@@ -18,18 +18,29 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
 {
     /// <summary>
     /// Получить информацию о бронировании по идентификатору.
+    /// Владелец брони или администратор могут просматривать бронь.
     /// </summary>
     /// <param name="id">Идентификатор бронирования.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <returns>Текущее состояние брони.</returns>
     /// <response code="200">Бронь найдена.</response>
+    /// <response code="401">Пользователь не аутентифицирован.</response>
+    /// <response code="403">Пользователь не является владельцем брони.</response>
     /// <response code="404">Бронь не найдена.</response>
+    [Authorize]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<BookingInfo>> GetBooking(Guid id, CancellationToken ct)
     {
-        var booking = await bookingService.GetBookingByIdAsync(id, ct);
+        if (!Guid.TryParse(User.FindFirstValue("sub"), out var userId))
+            return Unauthorized();
+
+        var isAdmin = User.FindFirstValue("role") == nameof(Roles.Admin);
+
+        var booking = await bookingService.GetBookingByIdAsync(id, userId, isAdmin, ct);
         return Ok(booking);
     }
 

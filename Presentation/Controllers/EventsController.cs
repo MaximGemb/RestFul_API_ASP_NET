@@ -67,9 +67,12 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// <returns>Созданное событие.</returns>
     /// <response code="201">Событие успешно создано.</response>
     /// <response code="400">Переданы некорректные данные.</response>
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<EventInfo>> CreateEvent([FromBody] CreateEvent newEvent, CancellationToken ct)
     {
         var createdEvent = await eventService.CreateEventAsync(newEvent, ct);
@@ -87,9 +90,12 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// <response code="204">Событие успешно обновлено.</response>
     /// <response code="400">Переданы некорректные данные.</response>
     /// <response code="404">Событие не найдено.</response>
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateEvent(Guid id, [FromBody] UpdateEvent updatedEvent, CancellationToken ct)
     {
@@ -105,8 +111,11 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// <returns>Статус операции.</returns>
     /// <response code="204">Событие успешно удалено.</response>
     /// <response code="404">Событие не найдено.</response>
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteEvent(Guid id, CancellationToken ct)
     {

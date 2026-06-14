@@ -10,7 +10,7 @@ namespace Presentation.Controllers;
 /// </summary>
 /// <param name="userService">Сервис для работы с пользователями.</param>
 [ApiController]
-[Route("[controller]")]
+[Route("auth")]
 [Produces("application/json")]
 public class UsersController(IUserService userService) : ControllerBase
 {
