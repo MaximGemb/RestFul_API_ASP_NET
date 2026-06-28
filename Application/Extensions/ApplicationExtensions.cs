@@ -1,7 +1,8 @@
 using Application.Interfaces;
 using Application.Services;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Presentation.Extensions;
+namespace Application.Extensions;
 
 /// <summary>
 /// Регистрация зависимостей слоя приложения.
@@ -16,7 +17,9 @@ public static class ApplicationServiceRegistration
     {
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IBookingService, BookingService>();
+        services.AddScoped<IUserService, UserService>();
         services.AddHostedService<BookingBackgroundService>();
+        services.AddSingleton<IPasswordHasherService, PasswordHasherService>();
 
         return services;
     }

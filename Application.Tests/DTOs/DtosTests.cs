@@ -81,6 +81,7 @@ public class DtosTests
     {
         var id = Guid.NewGuid();
         var eventId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
         var createdAt = DateTime.UtcNow;
         var processedAt = createdAt.AddMinutes(1);
 
@@ -88,6 +89,7 @@ public class DtosTests
         {
             Id = id,
             EventId = eventId,
+            UserId = userId,
             Status = BookingStatus.Confirmed,
             CreatedAt = createdAt,
             ProcessedAt = processedAt
@@ -95,6 +97,7 @@ public class DtosTests
 
         dto.Id.Should().Be(id);
         dto.EventId.Should().Be(eventId);
+        dto.UserId.Should().Be(userId);
         dto.Status.Should().Be(BookingStatus.Confirmed);
         dto.CreatedAt.Should().Be(createdAt);
         dto.ProcessedAt.Should().Be(processedAt);

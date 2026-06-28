@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using FluentAssertions;
 using Moq;
@@ -5,6 +6,7 @@ using Presentation.Controllers;
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
+using System.Security.Claims;
 using Xunit;
 
 namespace Presentation.Tests.Controllers;
@@ -190,21 +192,28 @@ public class EventsControllerTests
     {
         // Arrange
         var eventId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
         var bookingId = Guid.NewGuid();
         var booking = new BookingInfo
         {
             Id = bookingId,
             EventId = eventId,
+            UserId = userId,
             Status = BookingStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
         var bookingServiceMock = new Mock<IBookingService>();
         bookingServiceMock
-            .Setup(service => service.CreateBookingAsync(eventId, It.IsAny<CancellationToken>()))
+            .Setup(service => service.CreateBookingAsync(eventId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(booking);
 
+        var claims = new List<Claim> { new("sub", userId.ToString()) };
+        var identity = new ClaimsIdentity(claims, "Test");
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+
         var controller = new EventsController(new Mock<IEventService>().Object, bookingServiceMock.Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         var cts = new CancellationTokenSource();
 
         // Act
@@ -217,5 +226,20 @@ public class EventsControllerTests
         acceptedResult.RouteValues!["id"].Should().Be(booking.Id);
         var value = acceptedResult.Value.Should().BeOfType<BookingInfo>().Subject;
         value.Id.Should().Be(booking.Id);
+    }
+
+    [Fact]
+    public async Task BookEvent_ShouldReturnUnauthorized_WhenSubClaimIsMissing()
+    {
+        // Arrange
+        var controller = new EventsController(new Mock<IEventService>().Object, new Mock<IBookingService>().Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var result = await controller.BookEvent(Guid.NewGuid(), cts.Token);
+
+        // Assert
+        result.Should().BeOfType<UnauthorizedResult>();
     }
 }
