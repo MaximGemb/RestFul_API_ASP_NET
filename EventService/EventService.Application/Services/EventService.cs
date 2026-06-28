@@ -10,7 +10,6 @@ namespace EventService.Application.Services;
 /// </summary>
 public class EventService : IEventService
 {
-    private static readonly SemaphoreSlim SeatLock = new(1, 1);
     private readonly IEventRepository _eventRepository;
 
     /// <summary>
@@ -52,13 +51,6 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc />
-    public async Task<Event> GetEventEntityByIdAsync(Guid id, CancellationToken ct = default)
-    {
-        return await _eventRepository.FindByIdAsync(id, ct)
-               ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
-    }
-
-    /// <inheritdoc />
     public async Task<EventInfo> CreateEventAsync(CreateEvent item, CancellationToken ct = default)
     {
         var @event = Event.Create(item.Title, item.StartAt, item.EndAt, item.TotalSeats, item.Description);
@@ -88,43 +80,6 @@ public class EventService : IEventService
 
         _eventRepository.Remove(@event);
         await _eventRepository.SaveChangesAsync(ct);
-    }
-
-    /// <inheritdoc />
-    public async Task ReserveSeatAsync(Guid eventId, CancellationToken ct = default)
-    {
-        await SeatLock.WaitAsync(ct);
-        try
-        {
-            var @event = await _eventRepository.FindByIdAsync(eventId, ct)
-                         ?? throw new NotFoundException(eventId, $"Event with id {eventId} not found.");
-
-            @event.TryReserveSeats();
-            await _eventRepository.SaveChangesAsync(ct);
-        }
-        finally
-        {
-            SeatLock.Release();
-        }
-    }
-
-    /// <inheritdoc />
-    public async Task ReleaseSeatAsync(Guid eventId, CancellationToken ct = default)
-    {
-        await SeatLock.WaitAsync(ct);
-        try
-        {
-            var @event = await _eventRepository.FindByIdAsync(eventId, ct);
-            if (@event is null)
-                return;
-
-            @event.ReleaseSeats();
-            await _eventRepository.SaveChangesAsync(ct);
-        }
-        finally
-        {
-            SeatLock.Release();
-        }
     }
 
     /// <summary>

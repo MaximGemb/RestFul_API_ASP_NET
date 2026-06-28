@@ -53,8 +53,6 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
         httpContext.Response.ContentType = "application/json";
 
         var safeDetail = ex is NotFoundException
-                              or NoAvailableSeatsException
-                              or EventAlreadyStartedException
                               or ActiveBookingsLimitExceededException
                               or OperationNotAllowedException
                               or ValidationException
@@ -76,9 +74,7 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
         {
             OperationCanceledException => (499, "Client Closed Request"),
             ValidationException => (StatusCodes.Status400BadRequest, "Validation Error"),
-            EventAlreadyStartedException => (StatusCodes.Status400BadRequest, "Bad Request"),
             NotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
-            NoAvailableSeatsException => (StatusCodes.Status409Conflict, "No Available Seats"),
             ActiveBookingsLimitExceededException => (StatusCodes.Status409Conflict, "Active Bookings Limit Exceeded"),
             OperationNotAllowedException => (StatusCodes.Status403Forbidden, "Forbidden"),
             InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),

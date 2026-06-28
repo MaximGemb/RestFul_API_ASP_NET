@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using EventService.Application.Interfaces;
 using EventService.Infrastructure.DataAccess;
 using EventService.Infrastructure.DataAccess.Repositories;
+using EventService.Infrastructure.Kafka;
 
 namespace EventService.Infrastructure.Extensions;
 
@@ -13,7 +14,7 @@ namespace EventService.Infrastructure.Extensions;
 public static class InfrastructureExtensions
 {
     /// <summary>
-    /// Регистрирует DbContext и репозитории инфраструктурного слоя.
+    /// Регистрирует DbContext, репозитории и Kafka-подписчик инфраструктурного слоя.
     /// </summary>
     /// <param name="services">Коллекция сервисов.</param>
     /// <param name="connectionString">Строка подключения к базе данных.</param>
@@ -25,6 +26,10 @@ public static class InfrastructureExtensions
     {
         services.AddDbContext<EventsDbContext>(opt => opt.UseNpgsql(connectionString));
         services.AddScoped<IEventRepository, EventRepository>();
+
+        services.Configure<KafkaOptions>(opts => configuration.GetSection("Kafka").Bind(opts));
+        services.AddHostedService<KafkaTopicInitializer>();
+        services.AddHostedService<BookingConfirmedConsumer>();
 
         return services;
     }

@@ -135,13 +135,6 @@ public sealed class Event
     }
 
     /// <summary>
-    /// Освобождает указанное количество мест.
-    /// </summary>
-    /// <param name="count">Количество мест для освобождения (по умолчанию 1).</param>
-    public void ReleaseSeats(int count = 1) =>
-        AvailableSeats = Math.Min(TotalSeats, AvailableSeats + count);
-
-    /// <summary>
     /// Валидирует входные параметры события и выбрасывает исключение в случае ошибки.
     /// </summary>
     private static void ThrowIfNotValid(

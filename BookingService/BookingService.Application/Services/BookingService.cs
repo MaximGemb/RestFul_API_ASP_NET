@@ -31,7 +31,7 @@ public class BookingService : IBookingService
         {
             var activeCount = await _bookingRepository.CountActiveByUserAsync(userId, ct);
 
-            var newBooking = Booking.CreatePending(eventId, null, userId, activeCount);
+            var newBooking = Booking.CreatePending(eventId, userId, activeCount);
 
             await _bookingRepository.AddAsync(newBooking, ct);
             await _bookingRepository.SaveChangesAsync(ct);

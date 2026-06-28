@@ -80,20 +80,15 @@ public sealed class Booking
 
     /// <summary>
     /// Создает новую бронь в статусе <see cref="BookingStatus.Pending"/>.
-    /// Проверяет, что событие ещё не началось и пользователь не превысил лимит активных бронирований.
+    /// Проверяет, что пользователь не превысил лимит активных бронирований.
     /// </summary>
     /// <param name="eventId">Идентификатор события.</param>
-    /// <param name="eventStartAt">Дата начала события, полученная из EventService.</param>
     /// <param name="userId">Идентификатор пользователя.</param>
     /// <param name="activeBookingsCount">Текущее количество активных бронирований пользователя.</param>
     /// <returns>Новый экземпляр брони.</returns>
-    /// <exception cref="EventAlreadyStartedException">Событие уже началось.</exception>
     /// <exception cref="ActiveBookingsLimitExceededException">Превышен лимит активных бронирований.</exception>
-    public static Booking CreatePending(Guid eventId, DateTime? eventStartAt, Guid userId, int activeBookingsCount)
+    public static Booking CreatePending(Guid eventId, Guid userId, int activeBookingsCount)
     {
-        if (eventStartAt.HasValue && eventStartAt.Value <= DateTime.UtcNow)
-            throw new EventAlreadyStartedException(eventId);
-
         if (activeBookingsCount >= MaxActiveBookingsPerUser)
             throw new ActiveBookingsLimitExceededException(userId, MaxActiveBookingsPerUser);
 

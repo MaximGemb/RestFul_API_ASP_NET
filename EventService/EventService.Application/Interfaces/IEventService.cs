@@ -1,5 +1,4 @@
 using EventService.Application.DTOs;
-using EventService.Domain.Entities;
 
 namespace EventService.Application.Interfaces;
 
@@ -25,11 +24,6 @@ public interface IEventService
     Task<EventInfo> GetEventByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
-    /// Возвращает сущность события по идентификатору (для внутреннего использования).
-    /// </summary>
-    Task<Event> GetEventEntityByIdAsync(Guid id, CancellationToken ct = default);
-
-    /// <summary>
     /// Создает новое событие.
     /// </summary>
     Task<EventInfo> CreateEventAsync(CreateEvent item, CancellationToken ct = default);
@@ -44,13 +38,4 @@ public interface IEventService
     /// </summary>
     Task DeleteEventAsync(Guid id, CancellationToken ct = default);
 
-    /// <summary>
-    /// Резервирует одно место для события. Используется BookingService.
-    /// </summary>
-    Task ReserveSeatAsync(Guid eventId, CancellationToken ct = default);
-
-    /// <summary>
-    /// Освобождает одно место для события. Используется BookingService.
-    /// </summary>
-    Task ReleaseSeatAsync(Guid eventId, CancellationToken ct = default);
 }
