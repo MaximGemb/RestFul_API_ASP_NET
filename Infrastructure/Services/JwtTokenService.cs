@@ -47,7 +47,7 @@ public sealed class JwtTokenService : IJwtTokenService
             Audience = _settings.Audience,
             Claims = claims,
             NotBefore = DateTime.UtcNow,
-            Expires = DateTime.UtcNow.AddMinutes(15),
+            Expires = DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes),
             SigningCredentials = creds
         };
 

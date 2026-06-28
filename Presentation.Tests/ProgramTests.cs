@@ -168,6 +168,180 @@ public class ProgramTests(TestWebApplicationFactory factory) : IClassFixture<Tes
         statusProperty.GetString().Should().Be("Pending");
     }
 
+    [Fact]
+    public async Task CreateEvent_ShouldReturn403_WhenCalledByRegularUser()
+    {
+        // Arrange
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+        var userToken = GenerateJwtToken(Guid.NewGuid(), "User",
+            "we_are_the_nobodies_wanna_be_somebodies", "RestFulApiAspNet", "RestFulApiAspNetUsers");
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/Events");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userToken);
+        request.Content = JsonContent.Create(new CreateEvent
+        {
+            Title = "Forbidden Event",
+            Description = "Should not be created",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 5
+        });
+
+        // Act
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task UpdateEvent_ShouldReturn403_WhenCalledByRegularUser()
+    {
+        // Arrange
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+        const string secret = "we_are_the_nobodies_wanna_be_somebodies";
+        const string issuer = "RestFulApiAspNet";
+        const string audience = "RestFulApiAspNetUsers";
+
+        var adminToken = GenerateJwtToken(Guid.NewGuid(), "Admin", secret, issuer, audience);
+        var userToken = GenerateJwtToken(Guid.NewGuid(), "User", secret, issuer, audience);
+
+        var createRequest = new HttpRequestMessage(HttpMethod.Post, "/Events");
+        createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        createRequest.Content = JsonContent.Create(new CreateEvent
+        {
+            Title = "Event to update",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 5
+        });
+        var createResponse = await client.SendAsync(createRequest, TestContext.Current.CancellationToken);
+        createResponse.EnsureSuccessStatusCode();
+        var eventId = JsonDocument
+            .Parse(await createResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .RootElement.GetProperty("id").GetGuid();
+
+        // Act
+        var updateRequest = new HttpRequestMessage(HttpMethod.Put, $"/Events/{eventId}");
+        updateRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userToken);
+        updateRequest.Content = JsonContent.Create(new UpdateEvent
+        {
+            Title = "Hacked Title",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2)
+        });
+        var response = await client.SendAsync(updateRequest, TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task DeleteEvent_ShouldReturn403_WhenCalledByRegularUser()
+    {
+        // Arrange
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+        const string secret = "we_are_the_nobodies_wanna_be_somebodies";
+        const string issuer = "RestFulApiAspNet";
+        const string audience = "RestFulApiAspNetUsers";
+
+        var adminToken = GenerateJwtToken(Guid.NewGuid(), "Admin", secret, issuer, audience);
+        var userToken = GenerateJwtToken(Guid.NewGuid(), "User", secret, issuer, audience);
+
+        var createRequest = new HttpRequestMessage(HttpMethod.Post, "/Events");
+        createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        createRequest.Content = JsonContent.Create(new CreateEvent
+        {
+            Title = "Event to delete",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 5
+        });
+        var createResponse = await client.SendAsync(createRequest, TestContext.Current.CancellationToken);
+        createResponse.EnsureSuccessStatusCode();
+        var eventId = JsonDocument
+            .Parse(await createResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .RootElement.GetProperty("id").GetGuid();
+
+        // Act
+        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/Events/{eventId}");
+        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userToken);
+        var response = await client.SendAsync(deleteRequest, TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task RegisterAndLogin_FullHttpFlow_ShouldReturnTokenAndAllowBooking()
+    {
+        // Arrange
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+        var login = "flow_user_" + Guid.NewGuid().ToString("N")[..8];
+        const string password = "SecurePassword123!";
+
+        // Act 1 — регистрация
+        var registerRequest = new HttpRequestMessage(HttpMethod.Post, "/auth/register");
+        registerRequest.Content = JsonContent.Create(new { Login = login, Password = password, Role = "User" });
+        var registerResponse = await client.SendAsync(registerRequest, TestContext.Current.CancellationToken);
+
+        // Assert 1
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Act 2 — вход в систему
+        var loginRequest = new HttpRequestMessage(HttpMethod.Post, "/auth/login");
+        loginRequest.Content = JsonContent.Create(new { Login = login, Password = password });
+        var loginResponse = await client.SendAsync(loginRequest, TestContext.Current.CancellationToken);
+
+        // Assert 2
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var loginJson = await loginResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var token = JsonDocument.Parse(loginJson).RootElement.GetProperty("token").GetString();
+        token.Should().NotBeNullOrWhiteSpace();
+
+        // Act 3 — используем полученный токен для бронирования события
+        var adminToken = GenerateJwtToken(Guid.NewGuid(), "Admin",
+            "we_are_the_nobodies_wanna_be_somebodies", "RestFulApiAspNet", "RestFulApiAspNetUsers");
+
+        var createEventRequest = new HttpRequestMessage(HttpMethod.Post, "/Events");
+        createEventRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        createEventRequest.Content = JsonContent.Create(new CreateEvent
+        {
+            Title = "Register-Login Flow Event",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
+        });
+        var createEventResponse = await client.SendAsync(createEventRequest, TestContext.Current.CancellationToken);
+        createEventResponse.EnsureSuccessStatusCode();
+        var eventId = JsonDocument
+            .Parse(await createEventResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .RootElement.GetProperty("id").GetGuid();
+
+        var bookRequest = new HttpRequestMessage(HttpMethod.Post, $"/Events/{eventId}/book");
+        bookRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var bookResponse = await client.SendAsync(bookRequest, TestContext.Current.CancellationToken);
+
+        // Assert 3
+        bookResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+    }
+
     private static string GenerateJwtToken(Guid userId, string role, string secret, string issuer, string audience)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));

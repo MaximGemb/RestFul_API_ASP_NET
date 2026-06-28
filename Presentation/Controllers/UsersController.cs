@@ -19,18 +19,18 @@ public class UsersController(IUserService userService) : ControllerBase
     /// </summary>
     /// <param name="request">Данные нового пользователя.</param>
     /// <param name="ct">Токен отмены.</param>
-    /// <returns>Идентификатор созданного пользователя.</returns>
-    /// <response code="200">Пользователь успешно зарегистрирован.</response>
+    /// <returns>Нет содержимого.</returns>
+    /// <response code="204">Пользователь успешно зарегистрирован.</response>
     /// <response code="400">Переданы некорректные данные.</response>
     /// <response code="409">Пользователь с таким логином уже существует.</response>
     [HttpPost("register")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<Guid>> Register([FromBody] RegisterRequest request, CancellationToken ct)
+    public async Task<ActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        var userId = await userService.RegisterAsync(request.Login, request.Password, request.Role, ct);
-        return Ok(userId);
+        await userService.RegisterAsync(request.Login, request.Password, request.Role, ct);
+        return NoContent();
     }
 
     /// <summary>
@@ -40,10 +40,10 @@ public class UsersController(IUserService userService) : ControllerBase
     /// <param name="ct">Токен отмены.</param>
     /// <returns>Подписанный JWT-токен.</returns>
     /// <response code="200">Успешная аутентификация, возвращён токен.</response>
-    /// <response code="401">Неверный логин или пароль.</response>
+    /// <response code="404">Неверный логин или пароль.</response>
     [HttpPost("login")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
         var token = await userService.LoginAsync(request.Login, request.Password, ct);

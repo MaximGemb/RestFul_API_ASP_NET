@@ -111,7 +111,7 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
             EventAlreadyStartedException => (StatusCodes.Status400BadRequest, "Bad Request"),
             ActiveBookingsLimitExceededException => (StatusCodes.Status409Conflict, "Active Bookings Limit Exceeded"),
             OperationNotAllowedException => (StatusCodes.Status403Forbidden, "Forbidden"),
-            InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
+            InvalidCredentialsException => (StatusCodes.Status404NotFound, "Not Found"),
             LoginAlreadyExistsException => (StatusCodes.Status409Conflict, "Conflict"),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
         };

@@ -49,27 +49,27 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
     /// </summary>
     /// <param name="id">Идентификатор бронирования.</param>
     /// <param name="ct">Токен отмены.</param>
-    /// <returns>Информация об отменённой брони.</returns>
-    /// <response code="200">Бронь успешно отменена.</response>
+    /// <returns>Нет содержимого.</returns>
+    /// <response code="204">Бронь успешно отменена.</response>
     /// <response code="401">Пользователь не аутентифицирован.</response>
     /// <response code="403">Пользователь не является владельцем брони.</response>
     /// <response code="404">Бронь не найдена.</response>
     /// <response code="409">Бронь уже отменена.</response>
     [Authorize]
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<BookingInfo>> CancelBooking(Guid id, CancellationToken ct)
+    public async Task<ActionResult> CancelBooking(Guid id, CancellationToken ct)
     {
         if (!Guid.TryParse(User.FindFirstValue("sub"), out var userId))
             return Unauthorized();
 
         var isAdmin = User.FindFirstValue("role") == nameof(Roles.Admin);
 
-        var booking = await bookingService.CancelBookingAsync(id, userId, isAdmin, ct);
-        return Ok(booking);
+        await bookingService.CancelBookingAsync(id, userId, isAdmin, ct);
+        return NoContent();
     }
 }

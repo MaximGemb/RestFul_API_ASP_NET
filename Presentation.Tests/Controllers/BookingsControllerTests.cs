@@ -108,7 +108,7 @@ public class BookingsControllerTests
     }
 
     [Fact]
-    public async Task CancelBooking_ShouldReturnOkResult_WhenBookingIsCancelledByOwner()
+    public async Task CancelBooking_ShouldReturnNoContent_WhenBookingIsCancelledByOwner()
     {
         // Arrange
         var bookingId = Guid.NewGuid();
@@ -132,11 +132,7 @@ public class BookingsControllerTests
         var actionResult = await _controller.CancelBooking(bookingId, cts.Token);
 
         // Assert
-        var okResult = actionResult.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var returnedBooking = okResult.Value.Should().BeOfType<BookingInfo>().Subject;
-
-        returnedBooking.Id.Should().Be(bookingId);
-        returnedBooking.Status.Should().Be(BookingStatus.Cancelled);
+        actionResult.Should().BeOfType<NoContentResult>();
     }
 
     [Fact]
@@ -152,6 +148,6 @@ public class BookingsControllerTests
         var actionResult = await _controller.CancelBooking(Guid.NewGuid(), CancellationToken.None);
 
         // Assert
-        actionResult.Result.Should().BeOfType<UnauthorizedResult>();
+        actionResult.Should().BeOfType<UnauthorizedResult>();
     }
 }
