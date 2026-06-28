@@ -3,13 +3,13 @@ using BookingService.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Shared.Contracts.BookingContracts;
 
 namespace BookingService.Application.Services;
 
 /// <summary>
 /// Фоновый сервис, отвечающий за обработку бронирований со статусом Pending.
-/// Для каждого Pending-бронирования проверяет существование события в EventService
-/// и подтверждает или отклоняет бронь.
+/// Подтверждает бронь, сохраняет статус в БД и публикует событие BookingConfirmed в Kafka.
 /// </summary>
 public class BookingBackgroundService : BackgroundService
 {
@@ -27,17 +27,25 @@ public class BookingBackgroundService : BackgroundService
     private readonly ILogger<BookingBackgroundService> _logger;
 
     /// <summary>
+    /// Издатель событий брони (singleton, потокобезопасен).
+    /// </summary>
+    private readonly IEventPublisher _eventPublisher;
+
+    /// <summary>
     /// Инициализирует новый экземпляр фонового сервиса.
     /// </summary>
     /// <param name="scopeFactory">Фабрика DI-скоупов для доступа к scoped-сервисам.</param>
     /// <param name="logger">Логгер для записи информации о работе сервиса.</param>
+    /// <param name="eventPublisher">Издатель событий брони.</param>
     // ReSharper disable once MemberCanBeProtected.Global
     public BookingBackgroundService(
         IServiceScopeFactory scopeFactory,
-        ILogger<BookingBackgroundService> logger)
+        ILogger<BookingBackgroundService> logger,
+        IEventPublisher eventPublisher)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _eventPublisher = eventPublisher;
     }
 
     /// <summary>
@@ -79,7 +87,7 @@ public class BookingBackgroundService : BackgroundService
     }
 
     /// <summary>
-    /// Обрабатывает указанное бронирование: запрашивает EventService и подтверждает или отклоняет бронь.
+    /// Подтверждает бронь, сохраняет статус в БД и публикует событие BookingConfirmed в Kafka.
     /// </summary>
     /// <param name="bookingId">Идентификатор бронирования для обработки.</param>
     /// <param name="stoppingToken">Токен для уведомления об отмене операции.</param>
@@ -91,25 +99,22 @@ public class BookingBackgroundService : BackgroundService
 
             using var scope = _scopeFactory.CreateScope();
             var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
-            var eventServiceClient = scope.ServiceProvider.GetRequiredService<IEventServiceClient>();
 
             var booking = await bookingRepository.FindByIdAsync(bookingId, stoppingToken);
             if (booking is not { Status: BookingStatus.Pending })
                 return;
 
-            var eventInfo = await eventServiceClient.GetEventAvailabilityAsync(booking.EventId, stoppingToken);
-            if (eventInfo is null)
-            {
-                booking.Reject();
-                await bookingRepository.SaveChangesAsync(stoppingToken);
-
-                _logger.LogWarning("Событие {EventId} не найдено в EventService. Бронь {BookingId} отклонена.",
-                    booking.EventId, booking.Id);
-                return;
-            }
-
             booking.Confirm();
             await bookingRepository.SaveChangesAsync(stoppingToken);
+
+            var confirmedEvent = new BookingConfirmed(
+                BookingId: booking.Id,
+                EventId: booking.EventId,
+                UserId: booking.UserId,
+                SeatsCount: 1,
+                ConfirmedAt: booking.ProcessedAt!.Value);
+
+            await _eventPublisher.PublishBookingConfirmedAsync(confirmedEvent, stoppingToken);
 
             _logger.LogInformation("Бронь {BookingId} для события {EventId} подтверждена.",
                 booking.Id, booking.EventId);
@@ -119,35 +124,7 @@ public class BookingBackgroundService : BackgroundService
         }
         catch (Exception ex)
         {
-            try
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
-                var eventServiceClient = scope.ServiceProvider.GetRequiredService<IEventServiceClient>();
-
-                var booking = await bookingRepository.FindByIdAsync(bookingId, stoppingToken);
-                if (booking != null)
-                {
-                    booking.Reject();
-
-                    try
-                    {
-                        await eventServiceClient.ReleaseSeatAsync(booking.EventId, stoppingToken);
-                    }
-                    catch (Exception releaseEx)
-                    {
-                        _logger.LogWarning(releaseEx, "Не удалось освободить место в EventService для брони {Id}.", bookingId);
-                    }
-
-                    await bookingRepository.SaveChangesAsync(stoppingToken);
-                }
-
-                _logger.LogError(ex, "Ошибка обработки брони {Id}.", bookingId);
-            }
-            catch (Exception innerEx)
-            {
-                _logger.LogError(innerEx, "Не удалось отклонить бронь {Id} после ошибки.", bookingId);
-            }
+            _logger.LogError(ex, "Ошибка обработки брони {Id}.", bookingId);
         }
     }
 

@@ -9,5 +9,5 @@ public static class BookingTopics
     /// <summary>
     /// Топик, в который BookingService публикует событие об успешном подтверждении брони.
     /// </summary>
-    public const string BookingConfirmed = "booking-confirmed";
+    public const string BOOKING_CONFIRMED = "booking-confirmed";
 }

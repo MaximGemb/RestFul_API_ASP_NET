@@ -1,7 +1,7 @@
 namespace Shared.Contracts.BookingContracts;
 
 /// <summary>
-/// Контракт события, публикуемого BookingService в топик <see cref="BookingTopics.BookingConfirmed"/>
+/// Контракт события, публикуемого BookingService в топик <see cref="BookingTopics.BOOKING_CONFIRMED"/>
 /// после успешного подтверждения брони.
 /// </summary>
 /// <param name="BookingId">Уникальный идентификатор брони.</param>
