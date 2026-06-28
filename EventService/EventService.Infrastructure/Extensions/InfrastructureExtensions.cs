@@ -26,6 +26,7 @@ public static class InfrastructureExtensions
     {
         services.AddDbContext<EventsDbContext>(opt => opt.UseNpgsql(connectionString));
         services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IInboxRepository, InboxRepository>();
 
         services.Configure<KafkaOptions>(opts => configuration.GetSection("Kafka").Bind(opts));
         services.AddHostedService<KafkaTopicInitializer>();

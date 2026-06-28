@@ -132,6 +132,15 @@ public sealed class BookingConfirmedConsumer : BackgroundService
         {
             using var scope = _scopeFactory.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<IEventRepository>();
+            var inboxRepository = scope.ServiceProvider.GetRequiredService<IInboxRepository>();
+
+            if (await inboxRepository.ExistsAsync(message.BookingId, stoppingToken))
+            {
+                _logger.LogInformation(
+                    "Бронь {BookingId} уже обработана (дублирующее сообщение). Пропускаем.",
+                    message.BookingId);
+                return;
+            }
 
             var @event = await repository.FindByIdAsync(message.EventId, stoppingToken);
 
@@ -154,6 +163,8 @@ public sealed class BookingConfirmedConsumer : BackgroundService
                     message.EventId, message.SeatsCount, message.BookingId);
                 return;
             }
+
+            inboxRepository.Add(message.BookingId, nameof(BookingConfirmed));
 
             await repository.SaveChangesAsync(stoppingToken);
 

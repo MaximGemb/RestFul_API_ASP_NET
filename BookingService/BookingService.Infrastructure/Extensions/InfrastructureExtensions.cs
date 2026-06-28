@@ -29,6 +29,9 @@ public static class InfrastructureExtensions
 
         services.AddDbContext<BookingsDbContext>(opt => opt.UseNpgsql(connectionString));
         services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
+
+        services.AddHostedService<OutboxRelayService>();
 
         return services;
     }

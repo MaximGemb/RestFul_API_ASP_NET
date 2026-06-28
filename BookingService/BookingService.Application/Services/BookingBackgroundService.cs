@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BookingService.Application.Interfaces;
 using BookingService.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,7 +10,9 @@ namespace BookingService.Application.Services;
 
 /// <summary>
 /// Фоновый сервис, отвечающий за обработку бронирований со статусом Pending.
-/// Подтверждает бронь, сохраняет статус в БД и публикует событие BookingConfirmed в Kafka.
+/// Подтверждает бронь и атомарно сохраняет в БД статус Confirmed вместе
+/// с Outbox-записью <c>BookingConfirmed</c>. Публикацией в Kafka занимается
+/// <see cref="BookingService.Infrastructure.Kafka.OutboxRelayService"/>.
 /// </summary>
 public class BookingBackgroundService : BackgroundService
 {
@@ -27,25 +30,17 @@ public class BookingBackgroundService : BackgroundService
     private readonly ILogger<BookingBackgroundService> _logger;
 
     /// <summary>
-    /// Издатель событий брони (singleton, потокобезопасен).
-    /// </summary>
-    private readonly IEventPublisher _eventPublisher;
-
-    /// <summary>
     /// Инициализирует новый экземпляр фонового сервиса.
     /// </summary>
     /// <param name="scopeFactory">Фабрика DI-скоупов для доступа к scoped-сервисам.</param>
     /// <param name="logger">Логгер для записи информации о работе сервиса.</param>
-    /// <param name="eventPublisher">Издатель событий брони.</param>
     // ReSharper disable once MemberCanBeProtected.Global
     public BookingBackgroundService(
         IServiceScopeFactory scopeFactory,
-        ILogger<BookingBackgroundService> logger,
-        IEventPublisher eventPublisher)
+        ILogger<BookingBackgroundService> logger)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
-        _eventPublisher = eventPublisher;
     }
 
     /// <summary>
@@ -87,7 +82,7 @@ public class BookingBackgroundService : BackgroundService
     }
 
     /// <summary>
-    /// Подтверждает бронь, сохраняет статус в БД и публикует событие BookingConfirmed в Kafka.
+    /// Подтверждает бронь и атомарно сохраняет статус Confirmed вместе с Outbox-записью.
     /// </summary>
     /// <param name="bookingId">Идентификатор бронирования для обработки.</param>
     /// <param name="stoppingToken">Токен для уведомления об отмене операции.</param>
@@ -100,12 +95,13 @@ public class BookingBackgroundService : BackgroundService
             using var scope = _scopeFactory.CreateScope();
             var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
 
+            var outboxRepository = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
+
             var booking = await bookingRepository.FindByIdAsync(bookingId, stoppingToken);
             if (booking is not { Status: BookingStatus.Pending })
                 return;
 
             booking.Confirm();
-            await bookingRepository.SaveChangesAsync(stoppingToken);
 
             var confirmedEvent = new BookingConfirmed(
                 BookingId: booking.Id,
@@ -114,9 +110,12 @@ public class BookingBackgroundService : BackgroundService
                 SeatsCount: 1,
                 ConfirmedAt: booking.ProcessedAt!.Value);
 
-            await _eventPublisher.PublishBookingConfirmedAsync(confirmedEvent, stoppingToken);
+            outboxRepository.Add(
+                OutboxMessage.Create(nameof(BookingConfirmed), JsonSerializer.Serialize(confirmedEvent)));
 
-            _logger.LogInformation("Бронь {BookingId} для события {EventId} подтверждена.",
+            await bookingRepository.SaveChangesAsync(stoppingToken);
+
+            _logger.LogInformation("Бронь {BookingId} для события {EventId} подтверждена, Outbox-сообщение сохранено.",
                 booking.Id, booking.EventId);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

@@ -15,6 +15,11 @@ public sealed class EventsDbContext(DbContextOptions<EventsDbContext> options) :
     public DbSet<Event> Events => Set<Event>();
 
     /// <summary>
+    /// Набор Inbox-записей об обработанных входящих сообщениях.
+    /// </summary>
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
+
+    /// <summary>
     /// Применяет все конфигурации сущностей из текущей сборки.
     /// </summary>
     /// <param name="modelBuilder">Строитель модели Entity Framework.</param>

@@ -15,6 +15,11 @@ public sealed class BookingsDbContext(DbContextOptions<BookingsDbContext> option
     public DbSet<Booking> Bookings => Set<Booking>();
 
     /// <summary>
+    /// Набор Outbox-сообщений, ожидающих публикации в брокер.
+    /// </summary>
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    /// <summary>
     /// Применяет все конфигурации сущностей из текущей сборки.
     /// </summary>
     /// <param name="modelBuilder">Строитель модели Entity Framework.</param>
