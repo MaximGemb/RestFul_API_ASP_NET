@@ -11,20 +11,20 @@
 - **Entity Framework Core 10 + Npgsql** — ORM для PostgreSQL.
 - **Apache Kafka (Confluent.Kafka)** — асинхронный обмен сообщениями между сервисами.
 - **Swagger (OpenAPI)** — интерактивная документация API.
-- **Docker Compose** — поднятие инфраструктуры (Kafka + PostgreSQL).
+- **Docker Compose** — поднятие инфраструктуры и всех .NET-сервисов в контейнерах.
 
 ---
 
 ## Состав системы
 
-| Сервис | HTTP-порт | HTTPS-порт | База данных | Kafka роль |
+| Сервис | HTTP-порт | База данных | Порт БД (внешний) | Kafka роль |
 |---|---|---|---|---|
-| **UserService** | `5000` | `7000` | `users_db` | — |
-| **EventService** | `5001` | `7001` | `events_db` | Consumer (`booking-confirmed`) |
-| **BookingService** | `5002` | `7002` | `bookings_db` | Producer (`booking-confirmed`) |
+| **UserService** | `5000` | `users_db` | `5432` | — |
+| **EventService** | `5001` | `events_db` | `5433` | Consumer (`booking-confirmed`) |
+| **BookingService** | `5002` | `bookings_db` | `5434` | Producer (`booking-confirmed`) |
 | **Kafka** | `9092` | — | — | Брокер сообщений |
 
-Все три PostgreSQL-базы и Kafka поднимаются одним файлом `docker-kafka_3_db.yml`.
+Вся инфраструктура (Kafka + 3 × PostgreSQL) и все три .NET-сервиса поднимаются одним файлом `docker-compose.yml`.
 
 ### Описание сервисов
 
@@ -74,17 +74,24 @@ EventService (порт 5001)
 
 ## Инфраструктура (Docker)
 
-Файл `docker-kafka_3_db.yml` поднимает всю необходимую инфраструктуру:
+Файл `docker-compose.yml` поднимает всю инфраструктуру и .NET-сервисы:
 
-| Контейнер | Образ | Порт |
+| Контейнер | Образ/Сборка | Порт |
 |---|---|---|
 | `eventapi-zookeeper` | `confluentinc/cp-zookeeper:7.6.1` | внутренний `2181` |
-| `eventapi-kafka` | `confluentinc/cp-kafka:7.6.1` | `9092` (внешний) |
-| `eventapi-users-db` | `postgres:16` | внутренний (volume `users-db-data`) |
-| `eventapi-events-db` | `postgres:16` | внутренний (volume `events-db-data`) |
-| `eventapi-bookings-db` | `postgres:16` | внутренний (volume `bookings-db-data`) |
+| `eventapi-kafka` | `confluentinc/cp-kafka:7.6.1` | `9092` (внешний), `29092` (внутренний) |
+| `eventapi-users-db` | `postgres:16` | `5432` (volume `users-db-data`) |
+| `eventapi-events-db` | `postgres:16` | `5433` (volume `events-db-data`) |
+| `eventapi-bookings-db` | `postgres:16` | `5434` (volume `bookings-db-data`) |
+| `eventapi-userservice` | `UserService/Dockerfile` | `5000` |
+| `eventapi-eventservice` | `EventService/Dockerfile` | `5001` |
+| `eventapi-bookingservice` | `BookingService/Dockerfile` | `5002` |
 
-Сервисы .NET запускаются **локально** (`dotnet run`) и подключаются к инфраструктуре через `localhost:9092` и `localhost:5432`.
+### Два режима запуска
+
+**Режим 1 — Полный Docker (рекомендуемый):** все сервисы и инфраструктура в контейнерах. Сервисы общаются между собой через внутреннюю сеть Docker (`kafka:29092`, `users-db:5432` и т.д.).
+
+**Режим 2 — Локальная разработка:** в Docker поднимается только инфраструктура (Kafka + БД), а .NET-сервисы запускаются через `dotnet run` и подключаются к `localhost`. Для этого режима в `appsettings.json` уже прописаны `localhost:9092` и соответствующие порты БД (`5432`, `5433`, `5434`).
 
 ---
 
@@ -92,29 +99,40 @@ EventService (порт 5001)
 
 ### Предварительные требования
 
-- **Docker Desktop** (или Docker Engine) — для запуска инфраструктуры.
-- **.NET 10.0 SDK** — [скачать с сайта Microsoft](https://dotnet.microsoft.com/download).
+- **Docker Desktop** (или Docker Engine) — для запуска инфраструктуры и сервисов.
+- **.NET 10.0 SDK** — [скачать с сайта Microsoft](https://dotnet.microsoft.com/download) (только для режима локальной разработки).
 
-### Шаг 1 — Запустить инфраструктуру
-
-```sh
-docker compose -f docker-kafka_3_db.yml up -d
-```
-
-Команда поднимает Zookeeper, Kafka и три PostgreSQL-базы. Дождитесь, пока все контейнеры перейдут в статус `healthy`:
+### Режим 1 — Полный запуск через Docker (рекомендуемый)
 
 ```sh
-docker compose -f docker-kafka_3_db.yml ps
+# Запустить всё одной командой
+docker compose up -d
 ```
 
-### Шаг 2 — Восстановить зависимости и собрать решение
+Команда собирает образы .NET-сервисов и поднимает все 8 контейнеров. Дождитесь, пока все контейнеры перейдут в статус `healthy`:
+
+```sh
+docker compose ps
+```
+
+Миграции EF Core применяются **автоматически** при каждом старте сервиса через `DatabaseMigrationRunner.MigrateIfRelational`.
+
+### Режим 2 — Локальная разработка (инфраструктура в Docker, сервисы через dotnet run)
+
+#### Шаг 1 — Запустить только инфраструктуру
+
+```sh
+docker compose up -d zookeeper kafka users-db events-db bookings-db
+```
+
+#### Шаг 2 — Восстановить зависимости и собрать решение
 
 ```sh
 dotnet restore Microservices_EventBooking.slnx
 dotnet build Microservices_EventBooking.slnx
 ```
 
-### Шаг 3 — Запустить сервисы (каждый в отдельном терминале)
+#### Шаг 3 — Запустить сервисы (каждый в отдельном терминале)
 
 ```sh
 # Терминал 1 — UserService (http://localhost:5000)
@@ -127,9 +145,7 @@ dotnet run --project EventService/EventService.Presentation --launch-profile eve
 dotnet run --project BookingService/BookingService.Presentation --launch-profile booking-http
 ```
 
-Миграции EF Core применяются **автоматически** при каждом старте сервиса через `DatabaseMigrationRunner.MigrateIfRelational`.
-
-### Шаг 4 — Проверить Swagger UI
+### Проверить Swagger UI
 
 | Сервис | Swagger |
 |---|---|
@@ -137,16 +153,17 @@ dotnet run --project BookingService/BookingService.Presentation --launch-profile
 | EventService | http://localhost:5001/swagger |
 | BookingService | http://localhost:5002/swagger |
 
-### Остановить инфраструктуру
+### Остановить
 
 ```sh
-docker compose -f docker-kafka_3_db.yml down
+# Остановить все контейнеры
+docker compose down
 ```
 
 Для полной очистки (включая тома с данными):
 
 ```sh
-docker compose -f docker-kafka_3_db.yml down -v
+docker compose down -v
 ```
 
 ## Управление миграциями EF Core
@@ -327,7 +344,7 @@ Authorization: Bearer <токен>
 ```
 RestFul_API_ASP_NET/
 │
-├── docker-kafka_3_db.yml            # Kafka + Zookeeper + 3 × PostgreSQL
+├── docker-compose.yml               # Kafka + Zookeeper + 3 × PostgreSQL + 3 × .NET сервиса
 ├── Microservices_EventBooking.slnx  # Solution-файл
 │
 ├── Shared.Contracts/                # Общие Kafka-контракты
@@ -336,12 +353,14 @@ RestFul_API_ASP_NET/
 │       └── BookingTopics.cs         # Константа топика "booking-confirmed"
 │
 ├── UserService/
+│   ├── Dockerfile                   # Сборка контейнера UserService
 │   ├── UserService.Domain/          # User, роли, доменные исключения
 │   ├── UserService.Application/     # IUserService, JWT-логика, DTOs
 │   ├── UserService.Infrastructure/  # UsersDbContext, репозитории, миграции
 │   └── UserService.Presentation/    # Program.cs, UsersController (/auth)
 │
 ├── EventService/
+│   ├── Dockerfile                   # Сборка контейнера EventService
 │   ├── EventService.Domain/         # Event, InboxMessage, исключения
 │   ├── EventService.Application/    # IEventService, IEventRepository, IInboxRepository, DTOs
 │   ├── EventService.Infrastructure/
@@ -352,6 +371,7 @@ RestFul_API_ASP_NET/
 │   └── EventService.Presentation/   # Program.cs, EventsController (/events)
 │
 ├── BookingService/
+│   ├── Dockerfile                   # Сборка контейнера BookingService
 │   ├── BookingService.Domain/       # Booking, BookingStatus, OutboxMessage, исключения
 │   ├── BookingService.Application/
 │   │   ├── Services/
