@@ -24,6 +24,11 @@ public interface IEventService
     Task<EventInfo> GetEventByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
+    /// Возвращает топ-10 самых популярных событий по проценту проданных мест.
+    /// </summary>
+    Task<IReadOnlyList<EventInfo>> GetTopEventsAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Создает новое событие.
     /// </summary>
     Task<EventInfo> CreateEventAsync(CreateEvent item, CancellationToken ct = default);

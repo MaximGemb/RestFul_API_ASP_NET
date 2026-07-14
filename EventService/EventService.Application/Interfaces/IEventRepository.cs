@@ -24,6 +24,14 @@ public interface IEventRepository
     Task<Event?> FindByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
+    /// Возвращает топ событий с наибольшим процентом проданных мест
+    /// (<c>(total_seats - available_seats) / total_seats</c>), по убыванию.
+    /// </summary>
+    /// <param name="count">Максимальное количество событий в результате.</param>
+    /// <param name="ct">Токен отмены.</param>
+    Task<List<Event>> GetTopByPopularityAsync(int count, CancellationToken ct = default);
+
+    /// <summary>
     /// Добавляет новое событие в контекст.
     /// </summary>
     Task AddAsync(Event @event, CancellationToken ct = default);
