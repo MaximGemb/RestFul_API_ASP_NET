@@ -109,7 +109,7 @@ EventService (порт 5001)
 | `eventapi-users-db` | `postgres:16` | `5432` (volume `users-db-data`) |
 | `eventapi-events-db` | `postgres:16` | `5433` (volume `events-db-data`) |
 | `eventapi-bookings-db` | `postgres:16` | `5434` (volume `bookings-db-data`) |
-| `eventapi-redis` | `redis:7` | `6379` (volume `redis-data`) |
+| `eventapi-redis` | `redis:7` (пароль `secret`, `maxmemory 256mb`, политика вытеснения `allkeys-lru`) | `6379` (volume `redis-data`) |
 | `eventapi-userservice` | `UserService/Dockerfile` | `5000` |
 | `eventapi-eventservice` | `EventService/Dockerfile` | `5001` |
 | `eventapi-bookingservice` | `BookingService/Dockerfile` | `5002` |
@@ -149,7 +149,7 @@ docker compose ps
 #### Шаг 1 — Запустить только инфраструктуру
 
 ```sh
-docker compose up -d zookeeper kafka users-db events-db bookings-db
+docker compose up -d zookeeper kafka users-db events-db bookings-db redis
 ```
 
 #### Шаг 2 — Восстановить зависимости и собрать решение
