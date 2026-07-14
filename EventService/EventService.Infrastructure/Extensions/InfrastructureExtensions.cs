@@ -52,6 +52,7 @@ public static class InfrastructureExtensions
             // создаётся один раз и переиспользуется как singleton на весь жизненный цикл приложения.
             return ConnectionMultiplexer.Connect(configurationOptions);
         });
+        services.AddSingleton<ICacheService, RedisCacheService>();
 
         return services;
     }
