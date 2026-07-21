@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using OpenTelemetry.Metrics;
@@ -90,6 +91,17 @@ using (var scope = app.Services.CreateScope())
     DatabaseMigrationRunner.MigrateIfRelational(db);
 }
 
+app.Use(async (context, next) =>
+{
+    var metricsFeature = context.Features.Get<IHttpMetricsTagsFeature>();
+    if (metricsFeature is not null && IsTechnicalPath(context.Request.Path))
+    {
+        metricsFeature.MetricsDisabled = true;
+    }
+
+    await next(context);
+});
+
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -107,3 +119,8 @@ app.MapControllers();
 app.MapPrometheusScrapingEndpoint();
 
 app.Run();
+
+static bool IsTechnicalPath(PathString path) =>
+    path.StartsWithSegments("/metrics") ||
+    path.StartsWithSegments("/swagger") ||
+    path.StartsWithSegments("/openapi");
