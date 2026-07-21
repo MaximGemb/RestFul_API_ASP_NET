@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Confluent.Kafka;
+using EventService.Application.Common;
 using EventService.Application.Interfaces;
 using EventService.Domain.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
@@ -133,6 +134,7 @@ public sealed class BookingConfirmedConsumer : BackgroundService
             using var scope = _scopeFactory.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<IEventRepository>();
             var inboxRepository = scope.ServiceProvider.GetRequiredService<IInboxRepository>();
+            var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
 
             if (await inboxRepository.ExistsAsync(message.BookingId, stoppingToken))
             {
@@ -167,6 +169,11 @@ public sealed class BookingConfirmedConsumer : BackgroundService
             inboxRepository.Add(message.BookingId, nameof(BookingConfirmed));
 
             await repository.SaveChangesAsync(stoppingToken);
+
+            // Инвалидируем только кеш конкретного события: список топ-10 меняется по TTL
+            // (небольшое устаревание рейтинга некритично), а инвалидация при каждом
+            // бронировании была бы избыточной нагрузкой на Redis.
+            await cacheService.RemoveAsync(CacheKeys.Event(message.EventId), stoppingToken);
 
             _logger.LogInformation(
                 "Места события {EventId} уменьшены на {SeatsCount}. Бронь {BookingId} обработана.",

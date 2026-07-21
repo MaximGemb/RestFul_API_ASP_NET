@@ -11,6 +11,7 @@
     <Project Path="EventService/EventService.Application/EventService.Application.csproj" />
     <Project Path="EventService/EventService.Infrastructure/EventService.Infrastructure.csproj" />
     <Project Path="EventService/EventService.Presentation/EventService.Presentation.csproj" />
+    <Project Path="EventService/EventService.Application.Tests/EventService.Application.Tests.csproj" />
   </Folder>
   <Folder Name="/BookingService/">
     <Project Path="BookingService/BookingService.Domain/BookingService.Domain.csproj" />

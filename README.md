@@ -10,6 +10,7 @@
 - **ASP.NET Core** — высокопроизводительные веб-API.
 - **Entity Framework Core 10 + Npgsql** — ORM для PostgreSQL.
 - **Apache Kafka (Confluent.Kafka)** — асинхронный обмен сообщениями между сервисами.
+- **Redis (StackExchange.Redis)** — кеширование данных событий в EventService (паттерн Cache-Aside).
 - **Swagger (OpenAPI)** — интерактивная документация API.
 - **Docker Compose** — поднятие инфраструктуры и всех .NET-сервисов в контейнерах.
 
@@ -23,13 +24,14 @@
 | **EventService** | `5001` | `events_db` | `5433` | Consumer (`booking-confirmed`) |
 | **BookingService** | `5002` | `bookings_db` | `5434` | Producer (`booking-confirmed`) |
 | **Kafka** | `9092` | — | — | Брокер сообщений |
+| **Redis** | `6379` | — | — | Кеш EventService |
 
-Вся инфраструктура (Kafka + 3 × PostgreSQL) и все три .NET-сервиса поднимаются одним файлом `docker-compose.yml`.
+Вся инфраструктура (Kafka + Redis + 3 × PostgreSQL) и все три .NET-сервиса поднимаются одним файлом `docker-compose.yml`.
 
 ### Описание сервисов
 
 - **UserService** — регистрация и аутентификация пользователей. Выдаёт JWT-токены, которые остальные сервисы используют для проверки прав.
-- **EventService** — каталог событий (CRUD). Хранит `events_db` с таблицами `Events` и `InboxMessages`. Подписан на Kafka-топик `booking-confirmed` — при получении события уменьшает `availableSeats` у соответствующего мероприятия.
+- **EventService** — каталог событий (CRUD). Хранит `events_db` с таблицами `Events` и `InboxMessages`. Подписан на Kafka-топик `booking-confirmed` — при получении события уменьшает `availableSeats` у соответствующего мероприятия. Кеширует событие по ID и топ-10 популярных событий в Redis (см. раздел [Кеширование (Redis) в EventService](#кеширование-redis-в-eventservice)).
 - **BookingService** — создание, подтверждение и отмена бронирований. Хранит `bookings_db` с таблицами `Bookings` и `OutboxMessages`. После подтверждения брони публикует сообщение `BookingConfirmed` в Kafka через паттерн Outbox.
 - **Shared.Contracts** — общая библиотека с контрактами Kafka-сообщений (`BookingConfirmed`, `BookingTopics`).
 
@@ -72,6 +74,30 @@ EventService (порт 5001)
 
 ---
 
+## Кеширование (Redis) в EventService
+
+`EventService` использует **Redis** (`StackExchange.Redis`) по паттерну **Cache-Aside**: при чтении сначала проверяется кеш, при отсутствии — данные берутся из БД и кладутся в кеш. Если Redis недоступен, `RedisCacheService` перехватывает ошибку, логирует её и возвращает `null`/пропускает запись — запрос при этом обслуживается напрямую из БД, деградация кеша не приводит к отказу сервиса.
+
+### Что кешируется и почему
+
+| Ключ | Что хранится | TTL | Обоснование TTL |
+|---|---|---|---|
+| `event:{id}` | Данные одного события (`EventInfo`) | **5 минут** | Карточка события запрашивается часто (просмотр, повторные обращения), но должна быть достаточно свежей — после бронирования доступные места должны обновляться быстро. Инвалидация при записи покрывает большинство изменений, TTL — защита на случай пропуска инвалидации. |
+| `events:top10` | Список топ-10 популярных событий | **2 минуты** | Рейтинговый агрегат, который меняется нечасто и для которого небольшое устаревание некритично. Явная инвалидация при каждом бронировании была бы избыточной нагрузкой на Redis, поэтому список обновляется только по TTL, а также при создании/удалении событий (когда состав списка объективно меняется). |
+
+### Что происходит при изменении данных
+
+Для `event:{id}` выбрана стратегия **«инвалидация при записи»** (write-invalidate): при изменении события ключ удаляется из кеша, а не обновляется. Следующий читающий запрос обращается к базе и прогревает кеш заново (`EventService.Application.Services.EventService.GetEventByIdAsync`). Эта стратегия проще стратегии «обновление при записи», не требует пересобирать `EventInfo` в месте записи и одинаково хорошо работает как для HTTP-запросов, так и для Kafka-обработчика.
+
+Порядок операций всегда одинаковый: **сначала сохраняем изменения в базе данных, затем инвалидируем кеш**. Если выполнение прервётся между этими двумя шагами, база останется в актуальном состоянии, а кеш будет обновлён при следующем запросе — то есть в худшем случае читающий запрос получит немного устаревшие данные, но никогда — рассинхронизацию с БД в другую сторону.
+
+- **`EventService.UpdateEventAsync`** — сохраняет изменения в БД, затем удаляет `event:{id}`.
+- **`EventService.DeleteEventAsync`** — удаляет событие из БД, затем удаляет `event:{id}` и `events:top10` (состав топ-10 мог измениться).
+- **`EventService.CreateEventAsync`** — сохраняет событие в БД, затем удаляет `events:top10` (новое событие может попасть в топ-10).
+- **`BookingConfirmedConsumer`** (Kafka-обработчик `booking-confirmed`) — после уменьшения `availableSeats` и сохранения в БД удаляет только `event:{id}` соответствующего события. `events:top10` **не** инвалидируется на каждое бронирование — этот кеш обновляется по TTL, что достаточно для рейтингового агрегата и не создаёт лишней нагрузки на Redis при высокой частоте бронирований.
+
+---
+
 ## Инфраструктура (Docker)
 
 Файл `docker-compose.yml` поднимает всю инфраструктуру и .NET-сервисы:
@@ -83,6 +109,7 @@ EventService (порт 5001)
 | `eventapi-users-db` | `postgres:16` | `5432` (volume `users-db-data`) |
 | `eventapi-events-db` | `postgres:16` | `5433` (volume `events-db-data`) |
 | `eventapi-bookings-db` | `postgres:16` | `5434` (volume `bookings-db-data`) |
+| `eventapi-redis` | `redis:7` (пароль `secret`, `maxmemory 256mb`, политика вытеснения `allkeys-lru`) | `6379` (volume `redis-data`) |
 | `eventapi-userservice` | `UserService/Dockerfile` | `5000` |
 | `eventapi-eventservice` | `EventService/Dockerfile` | `5001` |
 | `eventapi-bookingservice` | `BookingService/Dockerfile` | `5002` |
@@ -122,7 +149,7 @@ docker compose ps
 #### Шаг 1 — Запустить только инфраструктуру
 
 ```sh
-docker compose up -d zookeeper kafka users-db events-db bookings-db
+docker compose up -d zookeeper kafka users-db events-db bookings-db redis
 ```
 
 #### Шаг 2 — Восстановить зависимости и собрать решение
@@ -365,9 +392,11 @@ RestFul_API_ASP_NET/
 │   ├── EventService.Application/    # IEventService, IEventRepository, IInboxRepository, DTOs
 │   ├── EventService.Infrastructure/
 │   │   ├── DataAccess/              # EventsDbContext (Events + InboxMessages), репозитории, миграции
-│   │   └── Kafka/
-│   │       ├── BookingConfirmedConsumer.cs  # BackgroundService-подписчик топика "booking-confirmed"
-│   │       └── KafkaTopicInitializer.cs     # Создание топика при старте
+│   │   ├── Kafka/
+│   │   │   ├── BookingConfirmedConsumer.cs  # BackgroundService-подписчик топика "booking-confirmed"
+│   │   │   └── KafkaTopicInitializer.cs     # Создание топика при старте
+│   │   └── Redis/
+│   │       └── RedisCacheService.cs         # Реализация ICacheService на StackExchange.Redis
 │   └── EventService.Presentation/   # Program.cs, EventsController (/events)
 │
 ├── BookingService/

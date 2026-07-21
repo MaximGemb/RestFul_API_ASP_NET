@@ -88,6 +88,31 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # ─────────────────────────── Кэш ───────────────────────────
+  redis:
+    image: redis:7
+    container_name: eventapi-redis
+    command:
+      [
+        "redis-server",
+        "--requirepass", "secret",
+        "--maxmemory", "256mb",
+        "--maxmemory-policy", "allkeys-lru",
+        "--maxmemory-samples", "10",
+        "--save", ""
+      ]
+    mem_limit: 320m
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a secret ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # ─────────────────────────── Сервисы приложений ───────────────────────────
   userservice:
     build:
@@ -117,6 +142,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "5001:5001"
     environment:
@@ -124,6 +151,8 @@ services:
       ASPNETCORE_URLS: http://+:5001
       ConnectionStrings__DefaultConnection: Host=events-db;Port=5432;Database=events_db;Username=postgres;Password=postgres
       Kafka__BootstrapServers: kafka:29092
+      Redis__EndPoint: redis:6379
+      Redis__Password: secret
 
   bookingservice:
     build:
@@ -147,3 +176,4 @@ volumes:
   users-db-data:
   events-db-data:
   bookings-db-data:
+  redis-data:

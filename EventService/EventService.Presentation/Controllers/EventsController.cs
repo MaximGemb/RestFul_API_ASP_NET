@@ -41,6 +41,20 @@ public class EventsController(IEventService eventService) : ControllerBase
     }
 
     /// <summary>
+    /// Получить топ-10 самых популярных событий по проценту проданных мест.
+    /// </summary>
+    /// <param name="ct">Токен отмены.</param>
+    /// <returns>Список из 10 самых популярных событий.</returns>
+    /// <response code="200">Успешное выполнение.</response>
+    [HttpGet("top")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<EventInfo>>> GetTopEvents(CancellationToken ct)
+    {
+        var events = await eventService.GetTopEventsAsync(ct);
+        return Ok(events);
+    }
+
+    /// <summary>
     /// Получить событие по идентификатору.
     /// </summary>
     /// <param name="id">Идентификатор события.</param>

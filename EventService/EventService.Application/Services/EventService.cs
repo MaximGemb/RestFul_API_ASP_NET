@@ -1,3 +1,5 @@
+using System.Text.Json;
+using EventService.Application.Common;
 using EventService.Application.DTOs;
 using EventService.Application.Interfaces;
 using EventService.Domain.Entities;
@@ -7,18 +9,27 @@ namespace EventService.Application.Services;
 
 /// <summary>
 /// Сервис для работы с событиями через репозиторий.
+/// Реализует паттерн Cache-Aside для чтения данных: сначала проверяется кеш,
+/// при отсутствии данных выполняется запрос к базе, после чего результат сохраняется в кеш.
 /// </summary>
 public class EventService : IEventService
 {
+    private static readonly TimeSpan EventCacheTtl = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan TopEventsCacheTtl = TimeSpan.FromMinutes(2);
+    private const int TopEventsCount = 10;
+
     private readonly IEventRepository _eventRepository;
+    private readonly ICacheService _cacheService;
 
     /// <summary>
     /// Инициализирует новый экземпляр класса <see cref="EventService"/>.
     /// </summary>
     /// <param name="eventRepository">Репозиторий событий.</param>
-    public EventService(IEventRepository eventRepository)
+    /// <param name="cacheService">Сервис кеширования.</param>
+    public EventService(IEventRepository eventRepository, ICacheService cacheService)
     {
         _eventRepository = eventRepository;
+        _cacheService = cacheService;
     }
 
     /// <inheritdoc />
@@ -44,10 +55,40 @@ public class EventService : IEventService
     /// <inheritdoc />
     public async Task<EventInfo> GetEventByIdAsync(Guid id, CancellationToken ct = default)
     {
+        var cacheKey = CacheKeys.Event(id);
+
+        var cached = await _cacheService.GetAsync(cacheKey, ct);
+        if (cached is not null)
+        {
+            var cachedInfo = JsonSerializer.Deserialize<EventInfo>(cached);
+            if (cachedInfo is not null)
+                return cachedInfo;
+        }
+
         var @event = await _eventRepository.FindByIdAsync(id, ct)
                      ?? throw new NotFoundException(id, $"Can't get event with id {id}. Event not found");
 
-        return ToInfo(@event);
+        var info = ToInfo(@event);
+        await _cacheService.SetAsync(cacheKey, JsonSerializer.Serialize(info), EventCacheTtl, ct);
+        return info;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<EventInfo>> GetTopEventsAsync(CancellationToken ct = default)
+    {
+        var cached = await _cacheService.GetAsync(CacheKeys.TopEvents, ct);
+        if (cached is not null)
+        {
+            var cachedInfos = JsonSerializer.Deserialize<List<EventInfo>>(cached);
+            if (cachedInfos is not null)
+                return cachedInfos;
+        }
+
+        var events = await _eventRepository.GetTopByPopularityAsync(TopEventsCount, ct);
+        var infos = events.Select(ToInfo).ToList();
+
+        await _cacheService.SetAsync(CacheKeys.TopEvents, JsonSerializer.Serialize(infos), TopEventsCacheTtl, ct);
+        return infos;
     }
 
     /// <inheritdoc />
@@ -57,6 +98,7 @@ public class EventService : IEventService
 
         await _eventRepository.AddAsync(@event, ct);
         await _eventRepository.SaveChangesAsync(ct);
+        await _cacheService.RemoveAsync(CacheKeys.TopEvents, ct);
         return ToInfo(@event);
     }
 
@@ -69,6 +111,7 @@ public class EventService : IEventService
         @event.Update(item.Title, item.StartAt, item.EndAt, item.Description);
 
         await _eventRepository.SaveChangesAsync(ct);
+        await _cacheService.RemoveAsync(CacheKeys.Event(id), ct);
         return ToInfo(@event);
     }
 
@@ -80,6 +123,8 @@ public class EventService : IEventService
 
         _eventRepository.Remove(@event);
         await _eventRepository.SaveChangesAsync(ct);
+        await _cacheService.RemoveAsync(CacheKeys.Event(id), ct);
+        await _cacheService.RemoveAsync(CacheKeys.TopEvents, ct);
     }
 
     /// <summary>

@@ -56,6 +56,13 @@ public class EventRepository : IEventRepository
         _context.Events.FirstOrDefaultAsync(e => e.Id == id, ct);
 
     /// <inheritdoc />
+    public Task<List<Event>> GetTopByPopularityAsync(int count, CancellationToken ct = default) =>
+        _context.Events
+            .OrderByDescending(e => (double)(e.TotalSeats - e.AvailableSeats) / e.TotalSeats)
+            .Take(count)
+            .ToListAsync(ct);
+
+    /// <inheritdoc />
     public async Task AddAsync(Event @event, CancellationToken ct = default) =>
         await _context.Events.AddAsync(@event, ct);
 
