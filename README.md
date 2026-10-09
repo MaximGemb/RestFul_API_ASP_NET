@@ -11,6 +11,11 @@
 - **Entity Framework Core 10 + Npgsql** — ORM для PostgreSQL.
 - **Apache Kafka (Confluent.Kafka)** — асинхронный обмен сообщениями между сервисами.
 - **Redis (StackExchange.Redis)** — кеширование данных событий в EventService (паттерн Cache-Aside).
+- **OpenTelemetry** — метрики и распределённая трассировка.
+- **Prometheus** — сбор и хранение метрик.
+- **Jaeger** — UI для просмотра трейсов (OTLP gRPC).
+- **Grafana** — дашборды и визуализация метрик.
+- **Serilog** — структурированное логирование (JSON).
 - **Swagger (OpenAPI)** — интерактивная документация API.
 - **Docker Compose** — поднятие инфраструктуры и всех .NET-сервисов в контейнерах.
 
@@ -25,6 +30,9 @@
 | **BookingService** | `5002` | `bookings_db` | `5434` | Producer (`booking-confirmed`) |
 | **Kafka** | `9092` | — | — | Брокер сообщений |
 | **Redis** | `6379` | — | — | Кеш EventService |
+| **Prometheus** | `9090` | — | — | Сбор метрик |
+| **Jaeger** | `16686` | — | — | Распределённая трассировка |
+| **Grafana** | `3000` | — | — | Дашборды и визуализация |
 
 Вся инфраструктура (Kafka + Redis + 3 × PostgreSQL) и все три .NET-сервиса поднимаются одним файлом `docker-compose.yml`.
 
@@ -98,6 +106,106 @@ EventService (порт 5001)
 
 ---
 
+## Наблюдаемость (Observability)
+
+Добавлен полноценный стек мониторинга, трассировки и логирования для всех трёх микросервисов.
+
+### Добавленные инструменты
+
+| Инструмент | Назначение | UI / Порт |
+|---|---|---|
+| **Prometheus** | Сбор метрик (scrape `/metrics` каждые 15 с) | http://localhost:9090 |
+| **Jaeger** | Распределённая трассировка (OpenTelemetry → OTLP gRPC) | http://localhost:16686 |
+| **Grafana** | Визуализация метрик и дашборды | http://localhost:3000 (логин `admin` / пароль `admin`) |
+| **Serilog** | Структурированное логирование (JSON в stdout) | — (логи видны через `docker compose logs`) |
+
+### Что экспортируют сервисы
+
+Каждый .NET-сервис (UserService, EventService, BookingService) настроен с помощью **OpenTelemetry SDK** и экспортирует:
+
+- **Метрики** — эндпоинт `GET /metrics` (формат Prometheus). Включена инструментация ASP.NET Core и .NET Runtime.
+- **Трейсы** — отправляются по OTLP gRPC на `http://jaeger:4317`. Инструментированы: ASP.NET Core, HttpClient, Entity Framework Core.
+- **Логи** — структурированный JSON через Serilog (`CompactJsonFormatter`) в stdout контейнера.
+
+### NuGet-пакеты (добавлены в каждый `*.Presentation.csproj`)
+
+| Пакет | Версия |
+|---|---|
+| `OpenTelemetry.Exporter.OpenTelemetryProtocol` | 1.17.0 |
+| `OpenTelemetry.Exporter.Prometheus.AspNetCore` | 1.17.0-beta.1 |
+| `OpenTelemetry.Extensions.Hosting` | 1.17.0 |
+| `OpenTelemetry.Instrumentation.AspNetCore` | 1.17.0 |
+| `OpenTelemetry.Instrumentation.EntityFrameworkCore` | 1.17.0-beta.1 |
+| `OpenTelemetry.Instrumentation.Http` | 1.17.0 |
+| `OpenTelemetry.Instrumentation.Runtime` | 1.17.0 |
+| `Serilog.AspNetCore` | 10.0.0 |
+| `Serilog.Formatting.Compact` | 3.0.0 |
+
+### Конфигурация (`appsettings.json`)
+
+В каждый сервис добавлена секция:
+
+```json
+"Otlp": {
+  "Endpoint": "http://localhost:4317",
+  "ServiceName": "<имя-сервиса>"
+}
+```
+
+В Docker-окружении переменная `Otlp__Endpoint` переопределяется на `http://jaeger:4317`.
+
+### Prometheus (`prometheus.yml`)
+
+Файл конфигурации маунтится в контейнер Prometheus. Scrape-конфиг собирает метрики со всех трёх сервисов:
+
+```yaml
+scrape_configs:
+  - job_name: users-service
+    static_configs:
+      - targets: ["userservice:5000"]
+  - job_name: events-service
+    static_configs:
+      - targets: ["eventservice:5001"]
+  - job_name: bookings-service
+    static_configs:
+      - targets: ["bookingservice:5002"]
+```
+
+### Готовый дашборд Grafana
+
+В репозитории лежит экспортированный дашборд `HTTP Metrics Overview-1784629061584.json`. Для импорта:
+
+1. Откройте Grafana → **Dashboards** → **Import**.
+2. Загрузите JSON-файл из корня репозитория.
+3. Укажите Prometheus в качестве источника данных.
+
+### Запуск стека мониторинга
+
+**Полный запуск (вместе с сервисами):**
+
+```sh
+docker compose up -d
+```
+
+**Только инструменты мониторинга (если сервисы запускаются локально через `dotnet run`):**
+
+```sh
+docker compose up -d prometheus jaeger grafana
+```
+
+После запуска убедитесь, что контейнеры работают:
+
+```sh
+docker compose ps
+```
+
+Затем откройте:
+- **Prometheus** — http://localhost:9090/targets — все таргеты должны быть в состоянии `UP`.
+- **Jaeger** — http://localhost:16686 — выберите сервис из выпадающего списка и найдите трейсы.
+- **Grafana** — http://localhost:3000 — добавьте Prometheus как Data Source (`http://prometheus:9090`) и импортируйте дашборд.
+
+---
+
 ## Инфраструктура (Docker)
 
 Файл `docker-compose.yml` поднимает всю инфраструктуру и .NET-сервисы:
@@ -113,6 +221,9 @@ EventService (порт 5001)
 | `eventapi-userservice` | `UserService/Dockerfile` | `5000` |
 | `eventapi-eventservice` | `EventService/Dockerfile` | `5001` |
 | `eventapi-bookingservice` | `BookingService/Dockerfile` | `5002` |
+| `eventapi-prometheus` | `prom/prometheus:v2.51.0` | `9090` |
+| `eventapi-jaeger` | `jaegertracing/all-in-one:1.56` | `16686` (UI), `4317` (OTLP gRPC) |
+| `eventapi-grafana` | `grafana/grafana:10.4.2` | `3000` (volume `grafana-data`) |
 
 ### Два режима запуска
 
